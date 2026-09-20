@@ -8,7 +8,8 @@ import { dirname, resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const APP = 'file://' + resolve(HERE, '..', 'index.html');
+const TARGET = process.argv[2] || 'index.html';
+const APP = 'file://' + resolve(HERE, '..', TARGET);
 const OUT = resolve(HERE, 'shots');
 mkdirSync(OUT, { recursive: true });
 

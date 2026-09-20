@@ -282,6 +282,7 @@
     function place(side) {
       var res = KH.market.deal(side, i.sym, current.qty);
       if (!res.ok) { KH.app.toast('Order rejected', res.reason, 'alert'); return; }
+      KH.sound.play('trade');
       var q = res.quote;
       KH.app.toast(
         (side === 'buy' ? 'Bought ' : 'Sold ') + fmt.group(q.qty, 0) + ' ' + i.sym,

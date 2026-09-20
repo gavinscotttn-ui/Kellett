@@ -15,6 +15,37 @@
   var tickerState = { offset: 0, items: [], raf: null, width: 0 };
 
   /* ============================================================
+     Group capitalisation
+
+     One dial scales the whole book. The register is rescaled from
+     its authored values, and the dealing account moves with it in
+     proportion so open positions and cash stay coherent.
+     ============================================================ */
+
+  var MIN_NET = 15000;
+  var MAX_NET = 15000000;
+
+  function clampNet(n) { return KH.util.clamp(Number(n) || MIN_NET, MIN_NET, MAX_NET); }
+  function factorFor(net) { return clampNet(net) / KH.assets.baseNet(); }
+
+  /** Apply the dial. `moveAccount` rescales cash as well, which is what
+      you want when the dial is dragged and not when the app is opening. */
+  function applyWealth(net, moveAccount) {
+    net = clampNet(net);
+    var before = KH.assets.scale();
+    var after = factorFor(net);
+    KH.assets.setScale(after);
+    if (moveAccount && before > 0) {
+      var t = KH.store.get('trading');
+      var ratio = after / before;
+      t.cash = Math.round(t.cash * ratio * 100) / 100;
+      t.startingCash = Math.round(t.startingCash * ratio * 100) / 100;
+      KH.store.save();
+    }
+    KH.store.set('workspace', { netWorth: net });
+  }
+
+  /* ============================================================
      Appearance
      ============================================================ */
 
@@ -166,6 +197,7 @@
     section.classList.remove('entering');
     void section.offsetWidth;
     section.classList.add('entering');
+    if (currentView && currentView !== id) KH.sound.play('nav');
     currentView = id;
     updateBadges();
   }
@@ -277,9 +309,12 @@
      Notifications
      ============================================================ */
 
+  var TOAST_SOUND = { alert: 'error', check: 'money', chat: 'message', info: 'toast' };
+
   function toast(title, detail, kind) {
     var host = $('#toasts');
     if (!host) return;
+    KH.sound.play(TOAST_SOUND[kind] || 'toast');
     var node = h('div', { class: 'toast' }, [
       icon(kind || 'info'),
       h('div', { class: 't-body' }, [h('b', { text: title }), detail ? h('span', { text: detail }) : null])
@@ -333,12 +368,14 @@
   }
 
   function lock() {
+    KH.sound.play('lock');
     $('#lock').hidden = false;
     $('#shell').classList.add('is-hidden');
     setTimeout(function () { $('#btn-unlock').focus(); }, 60);
   }
 
   function unlock() {
+    KH.sound.play('unlock');
     $('#lock').hidden = true;
     $('#shell').classList.remove('is-hidden');
     if (currentView && navButtons[currentView]) navButtons[currentView].focus();
@@ -378,6 +415,7 @@
   function boot() {
     var a = KH.store.get('appearance');
     fmt.setCurrency(KH.store.get('workspace').currency);
+    KH.assets.setScale(factorFor(KH.store.get('workspace').netWorth));
     applyAppearance();
     applyIdentity();
 
@@ -432,6 +470,7 @@
       $('#shell').classList.remove('is-hidden');
       setTimeout(function () { splash.hidden = true; }, 500);
       KH.market.start();
+      KH.sound.playWhenAllowed('startup');
       KH.store.set('session', { firstRun: false, lastOpened: Date.now() });
       if (KH.store.get('workspace').notifications) {
         setTimeout(function () {
@@ -445,6 +484,8 @@
 
   KH.app = {
     go: go, toast: toast, refreshAll: refreshAll, applyAppearance: applyAppearance,
+    applyWealth: applyWealth, factorFor: factorFor,
+    wealthRange: { min: MIN_NET, max: MAX_NET },
     isUnread: isUnread, isFlagged: isFlagged, isDeleted: isDeleted,
     markRead: markRead, toggleFlag: toggleFlag, deleteMessage: deleteMessage,
     updateBadges: updateBadges, lock: lock, unlock: unlock

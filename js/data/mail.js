@@ -96,6 +96,19 @@
       sign: 'Renée Vasquez\nManaging Director, Capital Markets\nMeridian Partners'
     },
     {
+      id: 'm29', folder: 'deals', from: 'tnet', mins: 47, unread: true, priority: true,
+      subject: 'Telecom Networks \u2014 strategic stake, and the fibre build',
+      tags: ['Transaction', 'Confidential'],
+      attachments: [{ name: 'TNET_Investor_Pack_Q3.pdf', size: '5.9 MB', ext: 'pdf' }, { name: 'Fibre_Buildout_Model.xlsx', size: '2.7 MB', ext: 'xls' }],
+      body: [
+        'Thank you for the time yesterday. To put it plainly: we would rather have you on the register than a fund that will be gone in eighteen months.',
+        'The fibre build is ahead of programme and under budget, which I appreciate is the sort of sentence that invites scepticism. The model is attached so you can be sceptical with the actual numbers in front of you.',
+        'We are offering the stake at a 6% discount to the closing price, with a twelve-month lock-up and a board observer seat. TNET is the strongest line on your watchlist and I do not think that is an accident.',
+        'If the answer is yes, it needs to be yes by Friday. If the answer is no, I would like to hear it from you rather than from your corporate finance team.'
+      ],
+      sign: 'Imogen Hartley-Rowe\nChief Executive\nTelecom Networks PLC'
+    },
+    {
       id: 'm07', folder: 'inbox', from: 'mazarus', mins: 163, unread: true,
       subject: 'acquiring your company (again)',
       tags: ['External'],
@@ -173,6 +186,41 @@
         'Give my regards to the North Sea.'
       ],
       sign: 'Warren Buffét\nOracle\nOmahaha Capital'
+    },
+    {
+      id: 'm26', folder: 'priority', from: 'donaghy', mins: 63, unread: true, priority: true,
+      subject: 'Synergy \u2014 and a frank word about your suit',
+      tags: ['External', 'Confidential'],
+      body: [
+        'Scott. Good. You answered before the second ring, which tells me everything I need to know about you and almost everything I need to know about your company.',
+        'Here is the situation. Sheinhardt has a microwave oven programming division, a television network and, for reasons that predate me and a lawsuit, a wig concern. Kabletown wants all three. I want your balance sheet standing behind me when I tell them the price.',
+        'I have run the numbers through Six Sigma. The wheel does not lie: Focus, Teamwork, Insight, Brutality. Your holding company scores well on three of those and I suspect we both know which one needs work.',
+        'Dinner Thursday. Wear the navy with the peak lapel \u2014 the notch lapel is for men who have given up.'
+      ],
+      sign: 'Jack Donaghy\nVice President, East Coast Television & Microwave Oven Programming\nSheinhardt Wig Company'
+    },
+    {
+      id: 'm27', folder: 'deals', from: 'pewterschmidt', mins: 188, unread: true,
+      subject: 'RE: joint venture \u2014 Pewterschmidt Industries',
+      tags: ['Transaction', 'External'],
+      attachments: [{ name: 'Pewterschmidt_Heads_of_Terms.pdf', size: '1.8 MB', ext: 'pdf' }],
+      body: [
+        'I have had my people look at your proposal and I will be honest with you, because at my age and net worth there is no percentage in being anything else.',
+        'It is a good deal. Not a great deal. A good one. I have made eleven billion dollars by knowing the difference, and by never, under any circumstances, letting my daughter marry into a business I am financing.',
+        'Come to the estate. Bring the term sheet, bring a swimming costume, and do not bring anybody from Quahog. I have had quite enough of Quahog.'
+      ],
+      sign: 'Carter Pewterschmidt\nChairman & Principal Shareholder\nPewterschmidt Industries'
+    },
+    {
+      id: 'm28', folder: 'inbox', from: 'duffy', mins: 505, unread: false,
+      subject: 'the beeper market is coming back',
+      tags: ['External'],
+      body: [
+        'Hey. Technology is cyclical. Everything that goes around comes around, and right now what is coming around is the beeper.',
+        'Hospitals. Drug dealers. Nostalgia. Three vertical markets, one product, zero competition, because everyone else quit. I did not quit. I am the Beeper King.',
+        'I am looking for a strategic partner with deep pockets and no questions. You are two for two.'
+      ],
+      sign: 'Dennis Duffy\nProprietor \u2014 The Beeper King\n“Technology is cyclical”'
     },
     {
       id: 'm14', folder: 'inbox', from: 'drax', mins: 540, unread: false,

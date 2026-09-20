@@ -3,20 +3,34 @@
 A single-window desktop workspace for a diversified holding company: correspondence,
 secure messaging, the asset register and a dealing desk, behind one piece of glass.
 
-It is a plain HTML, CSS and JavaScript application with **no build step, no package
-to install and no server**. Open `index.html` in a browser and it runs. Every figure
-it shows is produced on the machine it is running on; it makes no network connections
-of any kind.
+It is plain HTML, CSS and JavaScript with **no framework, no package to install and no
+server**. Every figure it shows is produced on the machine it is running on, and it makes
+no network connections of any kind.
+
+It ships two ways:
+
+- **`dist/KellettHoldings.html`** — one self-contained file, about 0.7 MB, with every
+  stylesheet, script and image inlined. Copy it anywhere, double-click it, and it works
+  offline with nothing beside it.
+- **The source tree** — the same application across `index.html`, `css/`, `js/` and
+  `assets/`, which also runs straight from the filesystem if you would rather work on it.
+
+Rebuild the single file with `python3 build.py` (Python 3, no dependencies).
 
 ![The Overview panel in the Midnight theme](docs/overview-dark.jpg)
 
 ![The asset register in the Daylight theme](docs/assets-light.jpg)
 
+![The group capitalisation dial](docs/capitalisation-dial.jpg)
+
 ## Running it
 
-Double-click `index.html`, or open it from the browser's File → Open. Chromium-based
-browsers, Firefox and Safari are all fine. Keep the folder together — `index.html`,
-`css/`, `js/` and `assets/` are one unit.
+Double-click **`dist/KellettHoldings.html`**. That is the whole instruction — it needs
+nothing else on disk and no connection. Chromium-based browsers, Firefox and Safari are
+all fine.
+
+To run the source tree instead, open `index.html`, keeping the folder together —
+`index.html`, `css/`, `js/` and `assets/` are one unit.
 
 If you would rather serve it over HTTP (any static server will do):
 
@@ -33,7 +47,7 @@ npx http-server . -p 8080     # then visit http://localhost:8080
 | **Messaging** | Ten channels with history, live incoming replies, typing indicators, unread counts, and answers that come back when you write. |
 | **Assets** | Twelve directly held positions with 36 months of valuation history, sparklines, a full position record, allocation by class and a twelve-month movement ranking. |
 | **Markets** | Twenty-four instruments on a live watchlist, intraday and 90-session charts, a market depth ladder, a dealing ticket with commission and stamp duty, positions and an order blotter. |
-| **Settings** | Identity, theme, accent, density, effects, motion, currency, market pace, notifications, the dealing account and stored data. |
+| **Settings** | Identity, theme, accent, density, effects, motion, sounds, currency, market pace, group capitalisation, the dealing account and stored data. |
 
 ## Making it yours
 
@@ -46,6 +60,28 @@ Two themes ship, both drawn by hand rather than one inverted from the other: **M
 **Automatic** follows the operating system and switches with it. Five accent colours,
 three layout densities, and switches for the glass effects, interface motion and the
 ticker tape.
+
+### Group capitalisation
+
+One dial under **Settings → Group standing** scales the entire book, from **£15,000** to
+**£15,000,000**. It moves the asset register and the dealing account together in
+proportion, so every chart, tile, valuation and sparkline follows it and the shape of the
+book is preserved at any setting. The scale is logarithmic, because the interesting
+decisions at the modest end are the same size as the interesting decisions at the grand
+end and a linear slider would bury the first hundred of them in one pixel. Where you leave
+it is remembered.
+
+The readout names the tier as it goes — *Established*, *High net worth*, *Family office*,
+*Principal tier* — and shows how the figure splits between the register and the dealing
+account. The range lives in two constants at the top of `js/app.js` if you want it wider.
+
+### Sounds
+
+Chimes on navigation, notifications, orders, the lock screen and start-up, synthesised
+live with Web Audio — glassy bell partials over major intervals, with a short bright tail,
+so there are no audio files to load and nothing to fetch. On by default; the switch is
+under **Settings → Workspace**. Browsers will not make a sound until you have interacted
+with the page, so the start-up chime waits politely for your first click.
 
 ### Keyboard
 
@@ -92,8 +128,11 @@ js/
   data/               People, instruments, the asset register, mail, messages
   views/              One module per panel
 assets/
-  kellett-logo*.png   The supplied mark, trimmed and scaled — never redrawn
+  kellett-*.webp      The supplied mark, trimmed and scaled — never redrawn
   source/             The original artwork exactly as supplied
+build.py              Bundles the whole thing into dist/KellettHoldings.html
+dist/
+  KellettHoldings.html   The single-file build
 test/
   ui-check.mjs        Behavioural checks
   screenshots.mjs     Walks every panel in both themes and writes screenshots
@@ -125,8 +164,10 @@ anyone whose system setting says otherwise.
 
 ### Privacy and safety
 
-- **No network.** A Content Security Policy pins `connect-src` to `'none'` and scripts,
-  styles and images to the application's own folder. There are no third-party scripts,
+- **No network.** A Content Security Policy pins `connect-src` to `'none'`. In the source
+  tree scripts, styles and images are pinned to the application's own folder; in the
+  single-file build the policy names a **SHA-256 hash of every inlined script**, so the
+  bundle keeps a strict script policy rather than falling back to `'unsafe-inline'`. There are no third-party scripts,
   fonts or trackers. A test asserts that nothing but `file://` is ever requested.
 - **No markup injection.** Elements are built through one helper that sets text through
   `textContent`; there is deliberately no `innerHTML` path, so a hostile display name
@@ -144,14 +185,17 @@ The checks drive a real browser, so they need Playwright:
 ```
 npm install
 npx playwright install chromium
-npm test        # behavioural checks
-npm run shots   # writes a screenshot of every panel to test/shots/
+npm test                                   # the source tree
+npm test -- dist/KellettHoldings.html      # the single-file build
+npm run shots                              # a screenshot of every panel, both themes
 ```
 
 `npm test` covers keyboard navigation, the lock screen, the rail and maximise states,
-order rejection on every invalid path, a buy/sell round trip including costs, persistence
+order rejection on every invalid path, a buy/sell round trip including costs, the
+capitalisation dial (scaling, clamping and persistence), the sound engine, persistence
 across a reload, currency switching, search, markup injection, reduced effects, unread
-counts and the no-network guarantee. All 23 pass on Chromium.
+counts and the no-network guarantee. **All 30 pass on Chromium, against the source tree
+and against the single-file build.**
 
 ## Notes
 

@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const APP = 'file://' + resolve(ROOT, 'index.html');
+/* Point at the bundle with:  node test/ui-check.mjs dist/KellettHoldings.html */
+const TARGET = process.argv[2] || 'index.html';
+const APP = 'file://' + resolve(ROOT, TARGET);
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1500, height: 900 } });
 const page = await ctx.newPage();
@@ -78,6 +80,44 @@ ok('Buy then sell closes the line', trip.ok && trip.stillHeld === false);
 ok('A round trip costs money (dealing costs)', trip.after < trip.before,
    `${trip.before.toFixed(2)} -> ${trip.after.toFixed(2)}`);
 
+// --- The group capitalisation dial ---
+const wealth = await page.evaluate(() => {
+  KH.app.applyWealth(15000, true);
+  const low = { register: KH.assets.total(), cash: KH.store.get('trading').cash };
+  KH.app.applyWealth(15000000, true);
+  const high = { register: KH.assets.total(), cash: KH.store.get('trading').cash };
+  return { low, high, stored: KH.store.get('workspace').netWorth };
+});
+ok('The dial rescales the asset register', wealth.high.register > wealth.low.register * 900,
+   `${Math.round(wealth.low.register)} -> ${Math.round(wealth.high.register)}`);
+ok('The dial moves the dealing account with it', wealth.high.cash > wealth.low.cash * 900,
+   `${wealth.low.cash.toFixed(0)} -> ${wealth.high.cash.toFixed(0)}`);
+ok('The dial clamps to its range', await page.evaluate(() => {
+  KH.app.applyWealth(999999999, true);
+  const over = KH.store.get('workspace').netWorth;
+  KH.app.applyWealth(-5, true);
+  const under = KH.store.get('workspace').netWorth;
+  KH.app.applyWealth(15000000, true);
+  return over === 15000000 && under === 15000;
+}));
+
+// --- Sounds ---
+const snd = await page.evaluate(() => {
+  try {
+    const before = KH.sound.enabled();
+    KH.sound.play('trade'); KH.sound.play('nav'); KH.sound.play('startup');
+    return { ok: true, enabled: before };
+  } catch (e) { return { ok: false, err: String(e) }; }
+});
+ok('Sounds are on by default', snd.enabled === true);
+ok('The sound engine plays without throwing', snd.ok === true, snd.err || '');
+ok('Muting silences it', await page.evaluate(() => {
+  KH.store.set('workspace', { sounds: false });
+  const quiet = KH.sound.enabled() === false;
+  KH.store.set('workspace', { sounds: true });
+  return quiet;
+}));
+
 // --- Persistence across a reload ---
 await page.evaluate(() => { KH.store.set('profile', { name: 'Marjorie Pemberton-Wicks' }); KH.store.set('appearance', { accent: 'emerald' }); KH.store.flush(); });
 await page.reload();
@@ -86,6 +126,7 @@ await page.waitForTimeout(400);
 ok('Identity survives a reload', (await page.textContent('#id-name')) === 'Marjorie Pemberton-Wicks');
 ok('Accent survives a reload', (await page.getAttribute('html', 'data-accent')) === 'emerald');
 ok('Blotter survives a reload', (await page.evaluate(() => KH.store.get('trading').blotter.length)) >= 2);
+ok('Capitalisation survives a reload', (await page.evaluate(() => KH.store.get('workspace').netWorth)) === 15000000);
 
 // --- Currency switch ---
 await page.evaluate(() => { KH.store.set('workspace', { currency: 'USD' }); KH.fmt.setCurrency('USD'); KH.app.refreshAll(); });

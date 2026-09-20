@@ -34,14 +34,16 @@
     },
     workspace: {
       currency: 'GBP',
+      netWorth: 15000000,       // group capitalisation the dial is set to
+
       marketSpeed: 'normal',    // 'calm' | 'normal' | 'brisk'
       notifications: true,
-      sounds: false,
+      sounds: true,
       ticker: true
     },
     trading: {
-      cash: 84250000,
-      startingCash: 84250000,
+      cash: 1896099,            // in proportion to the default capitalisation
+      startingCash: 1896099,
       positions: {},            // symbol -> { qty, avg }
       blotter: []               // most recent first, capped
     },

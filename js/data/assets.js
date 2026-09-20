@@ -42,14 +42,35 @@
     });
   }
 
+  /* The register is authored at full size and then scaled as a whole, so
+     the shape of every curve and every relative weighting survives however
+     the group capitalisation dial is set. */
+  var BASE_CASH = 84250000;
+  var scale = 1;
+
   REGISTER.forEach(function (a) {
     a.color = KH.charts.seriesColor(a.slot);
-    a.history = buildHistory(a);
-    a.gain = a.value - a.cost;
-    a.gainPct = (a.gain / a.cost) * 100;
-    var yearAgo = a.history[a.history.length - 13] || a.history[0];
-    a.yoy = ((a.value - yearAgo.v) / yearAgo.v) * 100;
+    a.baseValue = a.value;
+    a.baseCost = a.cost;
+    a.baseHistory = buildHistory(a);
   });
+
+  var BASE_REGISTER = KH.util.sum(REGISTER, function (a) { return a.baseValue; });
+
+  function setScale(f) {
+    scale = isFinite(f) && f > 0 ? f : 1;
+    REGISTER.forEach(function (a) {
+      a.value = a.baseValue * scale;
+      a.cost = a.baseCost * scale;
+      a.history = a.baseHistory.map(function (p) { return { t: p.t, v: p.v * scale }; });
+      a.gain = a.value - a.cost;
+      a.gainPct = (a.gain / a.cost) * 100;
+      var yearAgo = a.history[a.history.length - 13] || a.history[0];
+      a.yoy = ((a.value - yearAgo.v) / yearAgo.v) * 100;
+    });
+  }
+
+  setScale(1);
 
   function byClass() {
     var map = {};
@@ -76,6 +97,10 @@
 
   KH.assets = {
     register: REGISTER,
+    setScale: setScale,
+    scale: function () { return scale; },
+    baseCash: BASE_CASH,
+    baseNet: function () { return BASE_REGISTER + BASE_CASH; },
     total: function () { return KH.util.sum(REGISTER, function (a) { return a.value; }); },
     cost: function () { return KH.util.sum(REGISTER, function (a) { return a.cost; }); },
     byClass: byClass,

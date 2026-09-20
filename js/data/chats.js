@@ -133,6 +133,46 @@
       incoming: []
     },
     {
+      id: 'tnet', kind: 'dm', with: 'tnet', slot: 3, pinned: true,
+      messages: [
+        { from: 'tnet', text: 'Board approved the discount. 6%, twelve-month lock-up, observer seat. That is my best and final and I am not being coy about it.', mins: 58 },
+        { from: 'self', text: 'Understood. I want the observer seat to be a full seat at eighteen months if we are still there.', mins: 55 },
+        { from: 'tnet', text: 'I can live with that. I would rather have a shareholder who wants to sit in the room than one who wants to sit on the exit.', mins: 53 },
+        { from: 'self', text: 'Send it through. I will read it tonight.', mins: 50 }
+      ],
+      incoming: [
+        { from: 'tnet', text: 'Pack is with you. One ask \u2014 if you are buying in the market beforehand, keep it under 3% so we do not have to announce it.', at: 44, typing: 2600 },
+        { from: 'tnet', text: 'Fibre passed 400,000 premises this morning. Ahead of programme. I am allowed to be pleased about that for one day.', at: 196, typing: 3000 }
+      ]
+    },
+    {
+      id: 'donaghy', kind: 'dm', with: 'donaghy', slot: 0,
+      messages: [
+        { from: 'donaghy', text: 'Scott. Are you sitting down? Stand up. Everything of consequence I have ever decided, I decided standing up.', mins: 150 },
+        { from: 'self', text: 'I am standing.', mins: 148 },
+        { from: 'donaghy', text: 'Good. Kabletown have come back at nine times. I told them the number was eleven and I said it in a tuxedo, which adds roughly two turns.', mins: 146 },
+        { from: 'self', text: 'And if they walk?', mins: 144 },
+        { from: 'donaghy', text: 'They will not walk. Nobody walks away from a man holding a microwave oven programming division and a full head of hair.', mins: 142 }
+      ],
+      incoming: [
+        { from: 'donaghy', text: 'Also: your email signature has four lines. A great man needs two. Lose the mobile number \u2014 if they are important, they already have it.', at: 88, typing: 3000 },
+        { from: 'donaghy', text: 'Thursday confirmed. I have ordered for you. It is the veal. Do not argue with me in front of a sommelier.', at: 262, typing: 2600 }
+      ]
+    },
+    {
+      id: 'pewterschmidt', kind: 'dm', with: 'pewterschmidt', slot: 5,
+      messages: [
+        { from: 'pewterschmidt', text: 'You the one with the boat in Monaco?', mins: 330 },
+        { from: 'self', text: 'I am.', mins: 328 },
+        { from: 'pewterschmidt', text: 'Fifty-two metres. That is a nice starter boat. My tender has a tender.', mins: 326 },
+        { from: 'self', text: 'Shall we discuss the joint venture, Carter.', mins: 322 },
+        { from: 'pewterschmidt', text: 'We are discussing it. This IS the negotiation. You just lost four million dollars and you have not noticed yet.', mins: 320 }
+      ],
+      incoming: [
+        { from: 'pewterschmidt', text: 'Heads of terms are with you. Sign it before I remember how much I enjoy saying no.', at: 116, typing: 2800 }
+      ]
+    },
+    {
       id: 'partridge', kind: 'dm', with: 'partridge', slot: 1,
       messages: [
         { from: 'partridge', text: 'Did the deck arrive?', mins: 666 },
@@ -203,6 +243,30 @@
       'That is acceptable to the chair.',
       'We will revisit at the next scheduled meeting.',
       'Thank you. That settles it for now.'
+    ],
+    tnet: [
+      'Noted \u2014 I will get that to the board.',
+      'That works for us. I will have it papered this afternoon.',
+      'Good. This is why I wanted you on the register and not a fund.',
+      'Agreed. Let us not over-engineer it.'
+    ],
+    donaghy: [
+      'Correct. That is the answer a rich man gives.',
+      'Good. Now say it again, but slower, and without the word \u201cmaybe\u201d.',
+      'I am going to tell people that was my idea. You will thank me when it works.',
+      'There are only two kinds of decision, Scott: the one you make, and the one that gets made for you.'
+    ],
+    pewterschmidt: [
+      'Fine. But I am still going to complain about it at the club.',
+      'That is the first sensible thing anyone has said to me all week.',
+      'Done. My lawyers will make it unpleasant, but it is done.',
+      'You remind me of me, which is the highest compliment available and also a warning.'
+    ],
+    duffy: [
+      'See? This is why you are where you are and I am where I am. Temporarily.',
+      'Technology is cyclical, my friend.',
+      'I will have my people fax your people. I still have a fax.',
+      'Beeper King. Say it. Just once. For me.'
     ],
     partridge: [
       'So that\u2019s a maybe. I\u2019ll take a maybe.',

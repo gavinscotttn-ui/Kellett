@@ -88,6 +88,103 @@
     return row(title, note, group);
   }
 
+  /* ---------- The group capitalisation dial ----------------------------
+     A logarithmic slider, because the interesting decisions at the modest
+     end of the range are the same size as the interesting decisions at the
+     grand end, and a linear slider would bury the first hundred of them in
+     the leftmost pixel.
+     -------------------------------------------------------------------- */
+
+  var STEPS = 1000;
+
+  function posToNet(pos) {
+    var r = KH.app.wealthRange;
+    return Math.round(r.min * Math.pow(r.max / r.min, pos / STEPS));
+  }
+
+  function netToPos(net) {
+    var r = KH.app.wealthRange;
+    var n = KH.util.clamp(net, r.min, r.max);
+    return Math.round((Math.log(n / r.min) / Math.log(r.max / r.min)) * STEPS);
+  }
+
+  /** How a figure of this size would be described in a room where people
+      say things like "high net worth" without irony. */
+  function standing(net) {
+    if (net < 50000) return 'Emerging \u00b7 Retail client';
+    if (net < 250000) return 'Established \u00b7 Affluent';
+    if (net < 1000000) return 'Substantial \u00b7 Premier client';
+    if (net < 3000000) return 'High net worth \u00b7 Private client';
+    if (net < 8000000) return 'Very high net worth \u00b7 Private office';
+    if (net < 13000000) return 'Ultra high net worth \u00b7 Family office';
+    return 'Principal tier \u00b7 Institutional standing';
+  }
+
+  function wealthRow() {
+    var current = KH.store.get('workspace').netWorth;
+
+    var readout = h('b', { class: 'num', style: { fontSize: '1.42rem', fontWeight: '600', display: 'block', lineHeight: '1.2' } });
+    var tier = h('span', { style: { display: 'block', fontSize: 'var(--type-meta)', color: 'var(--text-secondary)' } });
+    var split = h('span', { style: { display: 'block', fontSize: 'var(--type-micro)', color: 'var(--text-muted)', marginTop: '2px' } });
+
+    var slider = h('input', {
+      type: 'range', min: '0', max: String(STEPS), step: '1', value: String(netToPos(current)),
+      class: 'wealth-slider', 'aria-label': 'Group capitalisation',
+      'aria-valuetext': fmt.money(current, 0)
+    });
+
+    function paint(net) {
+      readout.textContent = fmt.money(net, 0);
+      tier.textContent = standing(net);
+      var f = KH.app.factorFor(net);
+      split.textContent = 'Asset register ' + fmt.moneyShort(KH.assets.baseNet() * f - KH.assets.baseCash * f)
+        + ' \u00b7 dealing account ' + fmt.moneyShort(KH.assets.baseCash * f);
+      slider.setAttribute('aria-valuetext', fmt.money(net, 0));
+      slider.style.setProperty('--fill', ((netToPos(net) / STEPS) * 100).toFixed(1) + '%');
+    }
+
+    slider.addEventListener('input', function () { paint(posToNet(Number(slider.value))); });
+    slider.addEventListener('change', function () {
+      var net = posToNet(Number(slider.value));
+      KH.app.applyWealth(net, true);
+      KH.app.refreshAll();
+      paint(net);
+      KH.sound.play('money');
+    });
+
+    var presets = h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' } },
+      [15000, 100000, 750000, 2500000, 15000000].map(function (n) {
+        return h('button', {
+          class: 'btn sm ghost', type: 'button', text: fmt.moneyShort(n),
+          onclick: function () {
+            slider.value = String(netToPos(n));
+            KH.app.applyWealth(n, true);
+            KH.app.refreshAll();
+            paint(n);
+            KH.sound.play('money');
+          }
+        });
+      }));
+
+    paint(current);
+
+    return h('div', { class: 'set-row', style: { flexDirection: 'column', alignItems: 'stretch', gap: '10px' } }, [
+      h('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' } }, [
+        h('div', { class: 'desc', style: { flex: '1' } }, [
+          h('b', { text: 'Group capitalisation' }),
+          h('span', { text: 'Rescales the asset register and the dealing account together, so every chart, tile and valuation moves with it. Remembered between sessions.' })
+        ]),
+        h('div', { style: { textAlign: 'right', flex: 'none' } }, [readout, tier, split])
+      ]),
+      slider,
+      h('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 'var(--type-micro)', color: 'var(--text-muted)', letterSpacing: '.1em', textTransform: 'uppercase' } }, [
+        h('span', { text: fmt.money(KH.app.wealthRange.min, 0) }),
+        h('span', { text: fmt.money(KH.app.wealthRange.max, 0) })
+      ]),
+      presets
+    ]);
+  }
+
   function mount(root) {
     root.appendChild(h('div', { class: 'view-head' }, [
       h('div', { class: 'titles' }, [
@@ -158,8 +255,17 @@
           { value: 'calm', label: 'Calm' }, { value: 'normal', label: 'Normal' }, { value: 'brisk', label: 'Brisk' }
         ], function (v) { KH.market.setSpeed(v); }),
         switchRow('Desktop notifications', 'Incoming messages raise a notice in the corner.', 'workspace', 'notifications'),
+        switchRow('Interface sounds', 'Chimes on navigation, notices, orders and the lock screen.', 'workspace', 'sounds', function (on) {
+          if (on) KH.sound.play('toast');
+        }),
         switchRow('Ticker tape', 'The scrolling price strip along the status bar.', 'workspace', 'ticker', function () { KH.app.applyAppearance(); })
       ])
+    ]));
+
+    /* ---- Standing ---- */
+    wrap.appendChild(h('div', { class: 'panel' }, [
+      h('div', { class: 'panel-head' }, [icon('building', 'sub'), h('h2', { text: 'Group standing' }), h('div', { class: 'spacer' }), h('span', { class: 'sub', text: 'Scales the entire book' })]),
+      h('div', { class: 'panel-body flush' }, [wealthRow()])
     ]));
 
     /* ---- Dealing account ---- */
@@ -228,7 +334,7 @@
       h('div', { class: 'panel-head' }, [icon('info', 'sub'), h('h2', { text: 'About' })]),
       h('div', { class: 'panel-body' }, [
         h('div', { style: { display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' } }, [
-          h('img', { src: 'assets/kellett-logo-320.png', alt: 'Kellett Holdings', style: { height: '54px', width: 'auto', filter: 'var(--logo-lift)' } }),
+          h('img', { src: 'assets/kellett-logo-320.webp', alt: 'Kellett Holdings', style: { height: '54px', width: 'auto', filter: 'var(--logo-lift)' } }),
           h('div', { style: { minWidth: '0', lineHeight: '1.6', fontSize: 'var(--type-meta)', color: 'var(--text-secondary)' } }, [
             h('div', {}, [h('b', { style: { color: 'var(--text-primary)' }, text: 'Group Principal Workspace' }), ' · build 1.0.0']),
             h('div', { text: 'Runs entirely on this machine. It makes no network connections of any kind.' }),

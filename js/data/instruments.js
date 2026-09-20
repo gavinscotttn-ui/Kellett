@@ -11,6 +11,7 @@
      bias — a small annualised drift, so the book is not a coin toss */
   var INSTRUMENTS = [
     { sym: 'KHLD', name: 'Kellett Holdings PLC', sector: 'Diversified Holdings', px: 1842.50, vol: 0.013, bias: 0.16, lot: 1, house: true },
+    { sym: 'TNET', name: 'Telecom Networks PLC', sector: 'Telecommunications', px: 2914.60, vol: 0.017, bias: 0.23 },
     { sym: 'NRTH', name: 'Northgate Industrial Group', sector: 'Industrials', px: 964.20, vol: 0.016, bias: 0.09 },
     { sym: 'ZEPH', name: 'Zephyr Aerospace', sector: 'Aerospace & Defence', px: 2310.75, vol: 0.019, bias: 0.12 },
     { sym: 'MRDN', name: 'Meridian Resources', sector: 'Energy', px: 587.40, vol: 0.024, bias: 0.04 },
@@ -33,7 +34,11 @@
     { sym: 'HOOL', name: 'Hooli Global', sector: 'Technology', px: 4180.10, vol: 0.027, bias: 0.15 },
     { sym: 'DUND', name: 'Dunder Paper Group', sector: 'Paper & Packaging', px: 289.35, vol: 0.017, bias: 0.01 },
     { sym: 'BLUT', name: 'Bluth Development Co.', sector: 'Construction', px: 158.20, vol: 0.030, bias: -0.04 },
-    { sym: 'TITL', name: 'Trotters Independent', sector: 'Wholesale & Retail', px: 97.45, vol: 0.034, bias: 0.22 }
+    { sym: 'TITL', name: 'Trotters Independent', sector: 'Wholesale & Retail', px: 97.45, vol: 0.034, bias: 0.22 },
+    { sym: 'SHWG', name: 'Sheinhardt Wig Company', sector: 'Diversified Media', px: 2645.80, vol: 0.018, bias: 0.13 },
+    { sym: 'KBLT', name: 'Kabletown Communications', sector: 'Cable & Broadband', px: 1387.25, vol: 0.016, bias: 0.08 },
+    { sym: 'PWTR', name: 'Pewterschmidt Industries', sector: 'Industrial Conglomerate', px: 4726.55, vol: 0.020, bias: 0.11 },
+    { sym: 'HGLT', name: 'Happy-Go-Lucky Toys, Quahog', sector: 'Consumer Toys', px: 214.70, vol: 0.029, bias: 0.06 }
   ];
 
   /* The tape lines. These are quoted, never traded. */
