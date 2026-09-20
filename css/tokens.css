@@ -1,0 +1,197 @@
+/* ============================================================
+   Kellett Holdings — design tokens.
+
+   Two themes, both authored by hand rather than one flipped into
+   the other. The look is late-2000s Aero: every dark surface has
+   blue in it, every light surface is a pane of glass over paper,
+   and the gloss is a lit highlight rather than a tint.
+
+   `data-theme` is always resolved to `light` or `dark` by the
+   shell before first paint, so nothing here has to guess.
+   ============================================================ */
+
+:root {
+  /* ---- Geometry ---- */
+  --radius: 6px;
+  --radius-sm: 4px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+
+  /* ---- Type ---- */
+  --font-ui: 'Segoe UI', 'Selawik', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-num: 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', Consolas, 'SF Mono', 'DejaVu Sans Mono', monospace;
+
+  --type-hero: 2.1rem;
+  --type-title: 1.32rem;
+  --type-section: 1.02rem;
+  --type-body: 0.875rem;
+  --type-meta: 0.78rem;
+  --type-micro: 0.69rem;
+
+  /* ---- Motion. Every duration scales with --speed so the
+          "Interface motion" setting has one lever to pull. ---- */
+  --speed: 1;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: calc(140ms * var(--speed));
+  --dur: calc(240ms * var(--speed));
+  --dur-slow: calc(420ms * var(--speed));
+
+  /* ---- Density, driven by the "Layout density" setting ---- */
+  --row-h: 2.35rem;
+  --pad: 14px;
+
+  /* ---- Status. Fixed in both themes: a status colour never
+          impersonates a series colour, and never carries meaning
+          on its own — it always ships with a glyph and a label. ---- */
+  --up: #0ca30c;
+  --down: #d03b3b;
+  --warn: #fab219;
+  --serious: #ec835a;
+
+  /* ---- Categorical series, for every chart in the app. Assigned
+          in this fixed order and never cycled; validated against
+          both chart surfaces for colour-vision deficiency. ---- */
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #4a3aa7;
+  --s8: #e34948;
+}
+
+/* ============================================================
+   Dark — "Midnight". Deep corporate navy, lit from above.
+   ============================================================ */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-deep: #04101f;
+  --bg-mid: #0a2440;
+  --bg-far: #0d2e50;
+
+  --glass-fill: rgba(24, 78, 122, 0.30);
+  --glass-fill-strong: rgba(28, 90, 140, 0.44);
+  --glass-fill-quiet: rgba(16, 54, 90, 0.24);
+  --glass-edge: rgba(160, 220, 255, 0.26);
+  --gloss-top: rgba(255, 255, 255, 0.40);
+  --gloss-mid: rgba(214, 246, 255, 0.18);
+
+  --rim-light: rgba(255, 255, 255, 0.58);
+  --rim-side: rgba(214, 246, 255, 0.22);
+  --rim-base: rgba(120, 210, 240, 0.20);
+  --under-shade: rgba(4, 20, 38, 0.34);
+  --drop: rgba(2, 10, 22, 0.62);
+
+  --accent: #56b6f5;
+  --accent-deep: #1f7fd0;
+  --accent-ink: #04101f;
+  --accent-glow: rgba(86, 182, 245, 0.55);
+  --focus-rgb: 150, 214, 255;
+
+  --text-primary: #eef6ff;
+  --text-secondary: rgba(215, 234, 255, 0.74);
+  --text-muted: rgba(186, 212, 240, 0.48);
+  --text-on-accent: #04101f;
+
+  --rule: rgba(160, 210, 250, 0.16);
+  --rule-strong: rgba(160, 210, 250, 0.3);
+  --field: rgba(3, 18, 36, 0.46);
+  --field-edge: rgba(150, 205, 245, 0.26);
+
+  /* Chart surface — the plane the plots actually sit on. */
+  --chart-surface: #0e2a48;
+  --grid: rgba(160, 210, 250, 0.14);
+  --axis: rgba(160, 210, 250, 0.3);
+
+  /* Dark steps of the same eight hues, not the light ones dimmed. */
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --s4: #c98500;
+  --s5: #d55181;
+  --s6: #008300;
+  --s7: #9085e9;
+  --s8: #e66767;
+
+  --logo-lift: drop-shadow(0 0 22px rgba(120, 190, 255, 0.34));
+}
+
+/* ============================================================
+   Light — "Daylight". White glass over a pale blue desk.
+   ============================================================ */
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-deep: #dfe9f4;
+  --bg-mid: #f4f9ff;
+  --bg-far: #cfe0f2;
+
+  --glass-fill: rgba(255, 255, 255, 0.66);
+  --glass-fill-strong: rgba(255, 255, 255, 0.86);
+  --glass-fill-quiet: rgba(255, 255, 255, 0.46);
+  --glass-edge: rgba(255, 255, 255, 0.9);
+  --gloss-top: rgba(255, 255, 255, 0.85);
+  --gloss-mid: rgba(255, 255, 255, 0.35);
+
+  --rim-light: rgba(255, 255, 255, 0.95);
+  --rim-side: rgba(255, 255, 255, 0.7);
+  --rim-base: rgba(12, 52, 96, 0.10);
+  --under-shade: rgba(120, 155, 195, 0.14);
+  --drop: rgba(22, 56, 100, 0.18);
+
+  --accent: #0b63c5;
+  --accent-deep: #08498f;
+  --accent-ink: #ffffff;
+  --accent-glow: rgba(11, 99, 197, 0.30);
+  --focus-rgb: 11, 99, 197;
+
+  --text-primary: #0d2036;
+  --text-secondary: rgba(21, 52, 86, 0.76);
+  --text-muted: rgba(31, 62, 96, 0.52);
+  --text-on-accent: #ffffff;
+
+  --rule: rgba(18, 60, 108, 0.14);
+  --rule-strong: rgba(18, 60, 108, 0.26);
+  --field: rgba(255, 255, 255, 0.82);
+  --field-edge: rgba(18, 60, 108, 0.20);
+
+  --chart-surface: #f2f7fc;
+  --grid: rgba(18, 60, 108, 0.10);
+  --axis: rgba(18, 60, 108, 0.24);
+
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #4a3aa7;
+  --s8: #e34948;
+
+  /* On paper the mark needs no halo — it already has one. */
+  --logo-lift: none;
+}
+
+/* ---- Accent overrides, chosen in Settings. Declared after the
+        themes so a chosen accent always beats the theme's own. ---- */
+
+:root[data-accent='ice'][data-theme='dark'] { --accent: #6ee2f2; --accent-deep: #2ba6cf; --accent-glow: rgba(110, 226, 242, 0.55); --focus-rgb: 150, 236, 255; --accent-ink: #04101f; }
+:root[data-accent='ice'][data-theme='light'] { --accent: #0a7c9c; --accent-deep: #065f78; --accent-glow: rgba(10, 124, 156, 0.3); --focus-rgb: 10, 124, 156; }
+
+:root[data-accent='emerald'][data-theme='dark'] { --accent: #4fd6a0; --accent-deep: #1e9e71; --accent-glow: rgba(79, 214, 160, 0.5); --focus-rgb: 150, 240, 205; --accent-ink: #04101f; }
+:root[data-accent='emerald'][data-theme='light'] { --accent: #0b7a52; --accent-deep: #075c3d; --accent-glow: rgba(11, 122, 82, 0.3); --focus-rgb: 11, 122, 82; }
+
+:root[data-accent='amber'][data-theme='dark'] { --accent: #f0b64a; --accent-deep: #c1861c; --accent-glow: rgba(240, 182, 74, 0.5); --focus-rgb: 250, 214, 140; --accent-ink: #1c1203; }
+:root[data-accent='amber'][data-theme='light'] { --accent: #9a6206; --accent-deep: #764a03; --accent-glow: rgba(154, 98, 6, 0.3); --focus-rgb: 154, 98, 6; }
+
+:root[data-accent='crimson'][data-theme='dark'] { --accent: #f0748a; --accent-deep: #c2394f; --accent-glow: rgba(240, 116, 138, 0.5); --focus-rgb: 250, 170, 185; --accent-ink: #1c0409; }
+:root[data-accent='crimson'][data-theme='light'] { --accent: #b02a41; --accent-deep: #8a1e31; --accent-glow: rgba(176, 42, 65, 0.3); --focus-rgb: 176, 42, 65; }
+
+/* ---- Density ---- */
+:root[data-density='compact'] { --row-h: 2rem; --pad: 10px; --type-body: 0.82rem; --type-meta: 0.72rem; }
+:root[data-density='roomy'] { --row-h: 2.8rem; --pad: 18px; }

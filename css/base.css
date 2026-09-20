@@ -1,0 +1,264 @@
+/* ============================================================
+   Reset, the lit background, and the window shell.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+/* An author rule that sets `display` outranks the user agent's own
+   [hidden] rule, so state it here once rather than per component. */
+[hidden] { display: none !important; }
+
+body {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  color: var(--text-primary);
+  background: var(--bg-deep);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img { -webkit-user-drag: none; user-select: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+ul, ol { list-style: none; }
+a { color: var(--accent); }
+
+/* Focus is never invisible, but never drawn for a mouse either. */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid rgb(var(--focus-rgb));
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Scrollbars: slim, glassy, themed ---------- */
+
+.scroll { overflow-y: auto; overscroll-behavior: contain; }
+.scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.scroll::-webkit-scrollbar-track { background: transparent; }
+.scroll::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  background-color: var(--rule-strong);
+  border-radius: var(--radius-pill);
+}
+.scroll::-webkit-scrollbar-thumb:hover { background-color: var(--accent-deep); }
+.scroll { scrollbar-width: thin; scrollbar-color: var(--rule-strong) transparent; }
+
+/* ============================================================
+   Background: deep blue with slow drifting light.
+   ============================================================ */
+
+.stage { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+
+.bg {
+  position: absolute; inset: -20%;
+  background:
+    radial-gradient(ellipse 70% 60% at 32% 36%, var(--bg-mid) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 80% at 72% 82%, var(--bg-far) 0%, transparent 60%),
+    var(--bg-deep);
+}
+
+.blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; will-change: transform; }
+.blob.a { width: 55vw; height: 55vw; left: 6%; top: 10%; animation: driftA 54s ease-in-out infinite; }
+.blob.b { width: 42vw; height: 42vw; right: 5%; bottom: 3%; animation: driftB 47s ease-in-out infinite; }
+.blob.c { width: 34vw; height: 34vw; left: 46%; top: 50%; animation: driftA 61s ease-in-out infinite reverse; }
+
+:root[data-theme='dark'] .blob.a { background: radial-gradient(circle, rgba(38, 120, 190, 0.55), transparent 68%); }
+:root[data-theme='dark'] .blob.b { background: radial-gradient(circle, rgba(74, 190, 220, 0.34), transparent 68%); }
+:root[data-theme='dark'] .blob.c { background: radial-gradient(circle, rgba(20, 80, 150, 0.45), transparent 70%); }
+
+:root[data-theme='light'] .blob { opacity: 0.34; filter: blur(110px); }
+:root[data-theme='light'] .blob.a { background: radial-gradient(circle, rgba(120, 180, 240, 0.55), transparent 70%); }
+:root[data-theme='light'] .blob.b { background: radial-gradient(circle, rgba(160, 215, 240, 0.5), transparent 70%); }
+:root[data-theme='light'] .blob.c { background: radial-gradient(circle, rgba(190, 210, 245, 0.5), transparent 72%); }
+
+@keyframes driftA {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(7vw, -5vh) scale(1.14); }
+}
+@keyframes driftB {
+  0%, 100% { transform: translate(0, 0) scale(1.06); }
+  50% { transform: translate(-6vw, 4vh) scale(0.92); }
+}
+
+/* Light through water — slow, large, barely perceptible. */
+.caustics {
+  position: absolute; inset: -10%;
+  opacity: 0.07; filter: blur(28px);
+  background:
+    radial-gradient(ellipse 40% 22% at 30% 30%, rgba(180, 255, 255, 0.9), transparent 62%),
+    radial-gradient(ellipse 34% 18% at 70% 62%, rgba(150, 235, 255, 0.8), transparent 60%),
+    radial-gradient(ellipse 28% 26% at 52% 84%, rgba(190, 255, 246, 0.7), transparent 62%);
+  animation: caustic 26s ease-in-out infinite;
+}
+:root[data-theme='light'] .caustics { opacity: 0.5; mix-blend-mode: overlay; }
+
+@keyframes caustic {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(2.5vw, 1.6vh) scale(1.09); }
+  66% { transform: translate(-2vw, -1.2vh) scale(0.95); }
+}
+
+/* Fine grain — stops big gradients banding. */
+.noise {
+  position: absolute; inset: 0; opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme='light'] .noise { opacity: 0.018; }
+
+.vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 72% at 50% 46%, transparent 52%, rgba(0, 8, 18, 0.55) 100%);
+}
+:root[data-theme='light'] .vignette { background: radial-gradient(ellipse 80% 72% at 50% 46%, transparent 58%, rgba(60, 100, 150, 0.22) 100%); }
+
+/* Settings can stand the effects down on a modest machine. */
+.reduced-effects .blob, .reduced-effects .caustics { animation: none; }
+.reduced-effects .caustics, .reduced-effects .noise { display: none; }
+.motion-off *, .motion-off *::before, .motion-off *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   The window shell
+   ============================================================ */
+
+body > .shell {
+  position: fixed;
+  inset: 12px;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+body > .shell.is-hidden { opacity: 0; transform: scale(0.99); pointer-events: none; }
+
+body.maximised .shell { inset: 0; border-radius: 0; }
+body.minimised .shell { transform: translateY(calc(100% - 44px)); }
+
+/* ---------- Title bar ---------- */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 10px 0 14px;
+  height: 52px;
+  position: relative;
+  z-index: 4;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlebar .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.titlebar .brand img { height: 34px; width: auto; filter: var(--logo-lift); }
+
+.brand-text { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
+.brand-text b {
+  font-size: 0.8rem; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; white-space: nowrap;
+}
+.brand-text span {
+  font-size: var(--type-micro); color: var(--text-muted);
+  letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+}
+
+.titlebar .spacer { flex: 1; }
+
+.window-controls { display: flex; align-items: center; gap: 2px; }
+.window-controls button {
+  width: 42px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.window-controls button:hover { background: var(--glass-fill-strong); color: var(--text-primary); }
+.window-controls button.close:hover { background: #c4262e; color: #fff; }
+.window-controls svg { width: 11px; height: 11px; }
+
+/* ---------- Classification strip ---------- */
+
+.classification {
+  display: flex; align-items: center; gap: 10px;
+  padding: 3px 14px;
+  font-size: var(--type-micro);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-muted);
+  background: linear-gradient(90deg, rgba(200, 40, 40, 0.16), transparent 42%, transparent 58%, rgba(200, 40, 40, 0.16));
+  border-bottom: 1px solid var(--rule);
+  position: relative; z-index: 4;
+}
+.classification .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--up); box-shadow: 0 0 8px var(--up);
+  animation: pip 2.6s ease-in-out infinite;
+}
+@keyframes pip { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------- Workspace ---------- */
+
+.workspace { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 0; position: relative; z-index: 3; }
+body.rail .workspace { grid-template-columns: 64px minmax(0, 1fr); }
+
+.content { min-width: 0; min-height: 0; position: relative; }
+
+.view { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; }
+.view[hidden] { display: none; }
+.view.entering { animation: view-in var(--dur-slow) var(--ease) both; }
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.995); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Status bar ---------- */
+
+.statusbar {
+  display: flex; align-items: center; gap: 0;
+  height: 32px;
+  border-top: 1px solid var(--rule);
+  font-size: var(--type-meta);
+  color: var(--text-secondary);
+  position: relative; z-index: 4;
+  overflow: hidden;
+}
+.statusbar .seg { display: flex; align-items: center; gap: 7px; padding: 0 12px; height: 100%; white-space: nowrap; }
+.statusbar .seg + .seg { border-left: 1px solid var(--rule); }
+.statusbar .seg.grow { flex: 1; min-width: 0; overflow: hidden; padding: 0; }
+.statusbar b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+
+/* Signal pips — a little 2000s connection meter. */
+.pips { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+.pips i { width: 3px; background: var(--accent); border-radius: 1px; opacity: 0.9; }
+.pips i:nth-child(1) { height: 4px; }
+.pips i:nth-child(2) { height: 6px; }
+.pips i:nth-child(3) { height: 9px; }
+.pips i:nth-child(4) { height: 12px; opacity: 0.3; }
