@@ -1,61 +1,42 @@
 /* ============================================================
-   Overview — the single screen that answers "where does the
-   group stand" without anybody having to click anything.
+   Command — where the group stands, what it is doing, and the
+   one thing that most needs doing next.
    ============================================================ */
 
 (function (KH) {
   'use strict';
 
   var h = KH.dom.h, icon = KH.dom.icon, fmt = KH.fmt;
-
-  var ENGAGEMENTS = [
-    { at: '08:30', what: 'Treasury stand-up', who: 'Adaeze Okonjo · Room 4', slot: 0 },
-    { at: '09:45', what: 'Project NIGHTINGALE — pre-committee read', who: 'Sir Tarquin Fitzwilliam-Smythe', slot: 1 },
-    { at: '11:15', what: 'Caverton DC-04 — utilisation review', who: 'Operations · dial-in', slot: 2 },
-    { at: '12:30', what: 'Lunch — Meridian Partners', who: 'Renée Vasquez · The Ninth', slot: 3 },
-    { at: '14:00', what: 'Group risk committee', who: 'Dr. Evelyn Sterling · Boardroom', slot: 4 },
-    { at: '15:30', what: 'Syndicate call — RCF pricing', who: 'Six lenders · secure bridge', slot: 5 },
-    { at: '18:00', what: 'Board committee — NIGHTINGALE', who: 'Full board · Boardroom', slot: 6 }
-  ];
-
-  var FEED = [
-    { mins: 3, text: 'Settlement confirmed', tail: ' — Northbank reference NB-8841204' },
-    { mins: 11, text: 'Board pack v14 circulated', tail: ' — awaiting your signature on schedule 4' },
-    { mins: 24, text: 'Valuation refreshed', tail: ' — Caverton Data Campus DC-04, +2.4% on the quarter' },
-    { mins: 41, text: 'Covenant test passed', tail: ' — net leverage 2.1x against a 3.5x limit' },
-    { mins: 58, text: 'Environmental report filed', tail: ' — Meridian Offshore Block 12, no material findings' },
-    { mins: 96, text: 'Facility drawn', tail: ' — £12.0m under the revolving credit facility' },
-    { mins: 140, text: 'Insurance renewed', tail: ' — marine and aviation lines, twelve-month term' },
-    { mins: 190, text: 'Dividend declared', tail: ' — Panthera Fund IV, distribution to follow' }
-  ];
-
   var el = {};
-  var range = 36;
+
+  var PACE_LABEL = { paused: 'Paused', slow: 'Slow', normal: 'Normal', fast: 'Fast', rapid: 'Rapid' };
 
   function greeting() {
     var hr = new Date().getHours();
-    if (hr < 12) return 'Good morning';
-    if (hr < 18) return 'Good afternoon';
-    return 'Good evening';
+    return hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
   }
 
   function mount(root) {
     var profile = KH.store.get('profile');
-    var firstName = fmt.firstName(profile.name) || 'there';
 
-    el.headline = h('h1', { text: greeting() + ', ' + firstName });
+    el.headline = h('h1', { text: greeting() + ', ' + (fmt.firstName(profile.name) || 'there') });
 
     root.appendChild(h('div', { class: 'view-head' }, [
       h('div', { class: 'titles' }, [
-        h('div', { class: 'eyebrow', text: fmt.longDate(new Date()) }),
+        el.clock = h('div', { class: 'eyebrow' }),
         el.headline
       ]),
       h('div', { class: 'spacer' }),
       h('div', { class: 'actions' }, [
-        el.sessionChip = h('span', { class: 'chip', text: 'Markets loading' }),
-        h('button', { class: 'btn', type: 'button', onclick: function () { KH.app.toast('Position refreshed', 'All lines revalued against the latest marks.'); refresh(); } }, [
-          icon('refresh'), h('span', { text: 'Refresh' })
-        ])
+        el.paceChip = h('span', { class: 'chip' }),
+        h('button', {
+          class: 'btn', type: 'button', title: 'Advance the simulation by one week',
+          onclick: function () { KH.clock.advance(true); KH.sound.play('week'); refresh(); }
+        }, [icon('clock'), h('span', { text: 'Advance week' })]),
+        h('button', {
+          class: 'btn', type: 'button',
+          onclick: function () { KH.reports.groupPosition(); KH.app.toast('Report exported', 'Group position saved as a PDF.', 'check'); }
+        }, [icon('download'), h('span', { text: 'Position report' })])
       ])
     ]));
 
@@ -68,146 +49,233 @@
     var grid = h('div', { class: 'overview-grid' });
     body.appendChild(grid);
 
-    /* ---- Group position over time ---- */
-    el.posChart = h('div', { style: { height: '236px' } });
+    el.action = h('div', { class: 'span-12' });
+    grid.appendChild(el.action);
+
+    el.chart = h('div', { style: { height: '220px' } });
     grid.appendChild(h('div', { class: 'panel span-8' }, [
-      h('div', { class: 'panel-head' }, [
-        h('h2', { text: 'Group net position' }),
-        h('span', { class: 'sub', text: 'Monthly' }),
-        h('div', { class: 'spacer' }),
-        el.rangeCtl = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Period' }, [12, 24, 36].map(function (n) {
-          return h('button', {
-            type: 'button', 'aria-pressed': n === range ? 'true' : 'false',
-            text: n + 'm',
-            onclick: function () { range = n; drawPosition(); syncRange(); }
-          });
-        }))
-      ]),
-      h('div', { class: 'panel-body' }, el.posChart)
+      h('div', { class: 'panel-head' }, [h('h2', { text: 'Group net worth' }), h('span', { class: 'sub', text: 'Weekly' }),
+        h('div', { class: 'spacer' }), el.worthChip = h('span', { class: 'chip accent' })]),
+      h('div', { class: 'panel-body' }, el.chart)
     ]));
 
-    /* ---- Allocation ---- */
-    el.donut = h('div', { style: { height: '150px' } });
-    el.donutLegend = h('div', { style: { marginTop: '10px' } });
+    el.mix = h('div', { style: { height: '150px' } });
+    el.mixLegend = h('div', { style: { marginTop: '10px' } });
     grid.appendChild(h('div', { class: 'panel span-4' }, [
-      h('div', { class: 'panel-head' }, [h('h2', { text: 'Allocation by class' }), h('span', { class: 'sub', text: 'Share of register' })]),
-      h('div', { class: 'panel-body' }, [el.donut, el.donutLegend])
+      h('div', { class: 'panel-head' }, [h('h2', { text: 'Where it sits' }), h('span', { class: 'sub', text: 'By class' })]),
+      h('div', { class: 'panel-body' }, [el.mix, el.mixLegend])
     ]));
 
-    /* ---- Engagements ---- */
+    el.flow = h('div', { class: 'panel-body' });
     grid.appendChild(h('div', { class: 'panel span-4' }, [
-      h('div', { class: 'panel-head' }, [h('h2', { text: 'Today’s engagements' }), h('div', { class: 'spacer' }), icon('calendar', 'sub')]),
-      h('div', { class: 'agenda' }, ENGAGEMENTS.map(function (e) {
-        return h('div', { class: 'agenda-item' }, [
-          h('span', { class: 'time', text: e.at }),
-          h('span', { class: 'rail', style: { background: KH.charts.seriesColor(e.slot) } }),
-          h('span', { class: 'what' }, [h('b', { text: e.what }), h('span', { text: e.who })])
-        ]);
-      }))
+      h('div', { class: 'panel-head' }, [h('h2', { text: 'Weekly cash flow' }), h('div', { class: 'spacer' }), el.flowChip = h('span', { class: 'chip' })]),
+      el.flow
     ]));
 
-    /* ---- Correspondence requiring attention ---- */
+    el.standing = h('div', { class: 'panel-body' });
+    grid.appendChild(h('div', { class: 'panel span-4' }, [
+      h('div', { class: 'panel-head' }, [h('h2', { text: 'Standing' }), h('span', { class: 'sub', text: 'How you are seen' })]),
+      el.standing
+    ]));
+
+    el.holdings = h('div', { class: 'rows' });
+    grid.appendChild(h('div', { class: 'panel span-4' }, [
+      h('div', { class: 'panel-head' }, [h('h2', { text: 'Largest holdings' }), h('div', { class: 'spacer' }),
+        h('button', { class: 'btn sm ghost', type: 'button', text: 'Empire', onclick: function () { KH.app.go('empire'); } })]),
+      el.holdings
+    ]));
+
+    el.news = h('div', { class: 'feed' });
+    grid.appendChild(h('div', { class: 'panel span-8' }, [
+      h('div', { class: 'panel-head' }, [h('h2', { text: 'Group news' }), h('span', { class: 'sub', text: 'Most recent first' })]),
+      el.news
+    ]));
+
     el.attention = h('div', { class: 'rows' });
     grid.appendChild(h('div', { class: 'panel span-4' }, [
-      h('div', { class: 'panel-head' }, [
-        h('h2', { text: 'Requires your attention' }), h('div', { class: 'spacer' }),
-        h('button', { class: 'btn sm ghost', type: 'button', text: 'Open mail', onclick: function () { KH.app.go('mail'); } })
-      ]),
+      h('div', { class: 'panel-head' }, [h('h2', { text: 'Requires your attention' }), h('div', { class: 'spacer' }),
+        h('button', { class: 'btn sm ghost', type: 'button', text: 'Mail', onclick: function () { KH.app.go('mail'); } })]),
       el.attention
     ]));
 
-    /* ---- Movers ---- */
-    el.movers = h('div', { class: 'rows' });
-    grid.appendChild(h('div', { class: 'panel span-4' }, [
-      h('div', { class: 'panel-head' }, [
-        h('h2', { text: 'Session movers' }), h('div', { class: 'spacer' }),
-        h('button', { class: 'btn sm ghost', type: 'button', text: 'Open markets', onclick: function () { KH.app.go('markets'); } })
-      ]),
-      el.movers
-    ]));
-
-    /* ---- Activity ---- */
-    grid.appendChild(h('div', { class: 'panel span-12' }, [
-      h('div', { class: 'panel-head' }, [h('h2', { text: 'Group activity' }), h('span', { class: 'sub', text: 'Last 24 hours' })]),
-      h('div', { class: 'feed' }, FEED.map(function (f) {
-        return h('div', { class: 'feed-item' }, [
-          h('span', { class: 'ts', text: fmt.time(Date.now() - f.mins * 60000) }),
-          h('span', { class: 'txt' }, [h('b', { text: f.text }), f.tail])
-        ]);
-      }))
-    ]));
-
-    KH.dom.onResize(body, function () { drawPosition(); drawDonut(); });
+    KH.dom.onResize(body, function () { drawChart(); drawMix(); });
     refresh();
   }
 
-  function syncRange() {
-    KH.dom.$$('button', el.rangeCtl).forEach(function (b) {
-      b.setAttribute('aria-pressed', b.textContent === range + 'm' ? 'true' : 'false');
-    });
-  }
-
-  function drawPosition() {
-    if (!el.posChart) return;
-    var hist = KH.assets.groupHistory().slice(-range);
-    var p = KH.market.portfolio();
-    // The register plus the dealing account, marked to the current tape.
-    var series = hist.map(function (pt, i) {
-      var weight = i === hist.length - 1 ? p.total : p.total * (0.86 + (i / hist.length) * 0.14);
-      return { t: pt.t, v: pt.v + weight };
-    });
-    KH.charts.timeSeries(el.posChart, {
-      series: [{ name: 'Group net position', points: series, color: 'var(--s1)' }],
-      area: true,
-      yFormat: fmt.moneyShort,
-      tipFormat: function (v) { return fmt.money(v, 0); },
-      xFormat: function (t) { return new Date(t).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }); },
-      ariaLabel: 'Group net position over the last ' + range + ' months'
-    });
-  }
-
-  function drawDonut() {
-    if (!el.donut) return;
-    var slices = KH.assets.byClass();
-    var top = slices.slice(0, 6);
-    var rest = slices.slice(6);
-    if (rest.length) {
-      top.push({ label: 'Other (' + rest.length + ')', value: KH.util.sum(rest, function (s) { return s.value; }), color: 'var(--text-muted)' });
+  function refresh() {
+    if (!el.tiles) return;
+    var g = KH.game.get();
+    var profile = KH.store.get('profile');
+    el.headline.textContent = greeting() + ', ' + (fmt.firstName(profile.name) || 'there');
+    el.clock.textContent = 'Week ' + g.clock.week + ' · Year ' + g.clock.year + ' · Q' + g.clock.quarter +
+      ' · ' + fmt.longDate(new Date());
+    if (el.paceChip) {
+      el.paceChip.textContent = 'Time: ' + (PACE_LABEL[KH.clock.pace()] || 'Normal');
+      el.paceChip.className = 'chip ' + (KH.clock.pace() === 'paused' ? 'warn' : 'good');
     }
-    KH.charts.donut(el.donut, top, {
-      format: fmt.moneyShort,
-      centreTop: fmt.moneyShort(KH.assets.total()),
-      centreBottom: 'Register',
-      ariaLabel: 'Register split by asset class'
-    });
-    KH.dom.fill(el.donutLegend, KH.charts.legend(top, fmt.moneyShort));
+    drawTiles(); drawAction(); drawChart(); drawMix(); drawFlow(); drawStanding(); drawHoldings(); drawNews(); drawAttention();
   }
 
   function drawTiles() {
-    var p = KH.market.portfolio();
-    var reg = KH.assets.total();
-    var regCost = KH.assets.cost();
-    var net = reg + p.total;
-    var unread = KH.mail.messages.filter(function (m) { return KH.app.isUnread(m); }).length;
+    var g = KH.game.get();
+    var w = KH.sim.netWorth();
+    var f = KH.mike.weeklyFlow();
+    var controlled = Object.keys(g.corps).filter(function (s) { return KH.sim.controls(s); }).length;
+    var unread = KH.views.mail.badge();
 
-    var tiles = [
-      { k: 'Group net position', v: fmt.moneyShort(net), d: ((reg - regCost) / regCost) * 100, f: 'Register and dealing account' },
-      { k: 'Assets under management', v: fmt.moneyShort(reg), d: null, f: KH.assets.register.length + ' directly held positions' },
-      { k: 'Dealing account', v: fmt.moneyShort(p.total), d: p.pnlPct, f: fmt.money(p.cash, 0) + ' uninvested' },
-      { k: 'Unrealised on positions', v: fmt.signedShort(p.pnl), d: p.pnlPct, f: p.positions.length + ' open lines' },
-      { k: 'Correspondence', v: String(unread), d: null, f: unread === 1 ? 'item awaiting you' : 'items awaiting you' }
+    KH.dom.fill(el.tiles, [
+      tile('Group net worth', fmt.moneyShort(w.total), null, g.stats.peakNetWorth ? 'Peak ' + fmt.moneyShort(g.stats.peakNetWorth) : ''),
+      tile('Settled cash', fmt.moneyShort(w.cash), w.cash < 0 ? 'down' : null, w.debt ? 'State debt ' + fmt.moneyShort(w.debt) : 'No state debt'),
+      tile('Weekly flow', fmt.signedShort(f.net), f.net >= 0 ? 'up' : 'down', fmt.moneyShort(f.income) + ' in'),
+      tile('Companies', String(Object.keys(g.corps).length), null, controlled + ' controlled'),
+      tile('Property', String(g.props.length), null, fmt.moneyShort(w.property)),
+      tile('Correspondence', String(unread), null, unread === 1 ? 'item waiting' : 'items waiting')
+    ]);
+  }
+
+  function tile(k, v, dir, foot) {
+    return h('div', { class: 'stat' }, [
+      h('div', { class: 'k', text: k }),
+      h('div', { class: 'v' + (dir ? ' delta ' + dir : ''), text: v }),
+      foot ? h('div', { class: 'f' }, h('span', { text: foot })) : null
+    ]);
+  }
+
+  function drawAction() {
+    var g = KH.game.get();
+    var step = KH.mike.nextStep();
+    var urgent = g.treasury.cash < 0;
+    KH.dom.fill(el.action, h('div', { class: 'action-bar' + (urgent ? ' urgent' : '') }, [
+      icon(urgent ? 'alert' : 'info'),
+      h('div', { class: 'action-body' }, [
+        h('b', { text: urgent ? 'The group is overdrawn' : 'Recommended next step' }),
+        h('span', { text: step })
+      ]),
+      h('button', {
+        class: 'btn sm', type: 'button', text: 'Ask Mike',
+        onclick: function () { KH.app.go('messages'); KH.views.messages.open('mike'); }
+      })
+    ]));
+  }
+
+  function drawChart() {
+    if (!el.chart) return;
+    var g = KH.game.get();
+    var pts = g.history.slice(-120);
+    if (pts.length < 2) {
+      KH.dom.fill(el.chart, h('div', { class: 'empty' }, [icon('chart'),
+        h('span', { text: 'The series builds one point per simulated week. Advance the week, or let time run.' })]));
+      if (el.worthChip) el.worthChip.textContent = fmt.moneyShort(KH.sim.netWorth().total);
+      return;
+    }
+    var first = pts[0].total;
+    var last = pts[pts.length - 1].total;
+    if (el.worthChip) {
+      el.worthChip.textContent = fmt.pct(((last - first) / Math.abs(first || 1)) * 100, 1) + ' over ' + pts.length + ' weeks';
+    }
+    KH.charts.timeSeries(el.chart, {
+      series: [{ name: 'Net worth', points: pts.map(function (p) { return { t: p.w, v: p.total }; }), color: 'var(--s1)' }],
+      area: true,
+      yFormat: fmt.moneyShort,
+      tipFormat: function (v) { return fmt.money(v, 0); },
+      xFormat: function (t) { return 'Wk ' + t; },
+      ariaLabel: 'Group net worth by week'
+    });
+  }
+
+  function drawMix() {
+    if (!el.mix) return;
+    var w = KH.sim.netWorth();
+    var slices = [
+      { label: 'Listed equity', value: Math.max(0, w.equity) },
+      { label: 'Asset register', value: Math.max(0, w.register) },
+      { label: 'Property', value: Math.max(0, w.property) },
+      { label: 'Cash', value: Math.max(0, w.cash) },
+      { label: 'Personal', value: Math.max(0, w.toys) }
+    ].filter(function (s) { return s.value > 0; });
+    if (!slices.length) { KH.dom.fill(el.mix, h('div', { class: 'empty', text: 'Nothing to show yet' })); return; }
+    KH.charts.donut(el.mix, slices, {
+      format: fmt.moneyShort,
+      centreTop: fmt.moneyShort(w.total),
+      centreBottom: 'Net worth',
+      ariaLabel: 'Net worth by asset class'
+    });
+    KH.dom.fill(el.mixLegend, KH.charts.legend(slices, fmt.moneyShort));
+  }
+
+  function drawFlow() {
+    var f = KH.mike.weeklyFlow();
+    if (el.flowChip) {
+      el.flowChip.textContent = fmt.signed(f.net, 0) + ' / wk';
+      el.flowChip.className = 'chip ' + (f.net >= 0 ? 'good' : 'warn');
+    }
+    var rows = f.detail.slice(0, 7);
+    KH.dom.fill(el.flow, rows.length ? [
+      h('div', { class: 'flow-list' }, rows.map(function (d) {
+        return h('div', { class: 'flow-row' }, [
+          h('span', { class: 'flow-what', text: d.what }),
+          h('span', { class: 'delta ' + fmt.dir(d.amount) }, [
+            h('span', { class: 'arrow', text: fmt.arrow(d.amount), 'aria-hidden': 'true' }),
+            h('span', { text: fmt.signed(d.amount, 0) })
+          ])
+        ]);
+      }))
+    ] : h('div', { class: 'empty', text: 'No recurring income or costs yet.' }));
+  }
+
+  function drawStanding() {
+    var g = KH.game.get();
+    var bars = [
+      { k: 'Reputation', v: g.standing.reputation, good: true, note: 'How the market reads you' },
+      { k: 'Regulatory scrutiny', v: g.standing.scrutiny, good: false, note: 'How closely you are watched' },
+      { k: 'Prestige', v: Math.min(100, g.standing.prestige), good: true, note: 'What the toys buy you' }
     ];
+    KH.dom.fill(el.standing, bars.map(function (b) {
+      var colour = b.good ? (b.v > 66 ? 'var(--up)' : b.v > 33 ? 'var(--warn)' : 'var(--down)')
+                          : (b.v < 33 ? 'var(--up)' : b.v < 66 ? 'var(--warn)' : 'var(--down)');
+      return h('div', { class: 'standing-row' }, [
+        h('div', { class: 'standing-top' }, [h('span', { text: b.k }), h('b', { class: 'num', text: String(Math.round(b.v)) })]),
+        h('div', { class: 'meter' }, h('i', { style: { width: KH.util.clamp(b.v, 0, 100) + '%', background: colour } })),
+        h('span', { class: 'standing-note', text: b.note })
+      ]);
+    }));
+  }
 
-    KH.dom.fill(el.tiles, tiles.map(function (t) {
-      return h('div', { class: 'stat' }, [
-        h('div', { class: 'k', text: t.k }),
-        h('div', { class: 'v', text: t.v }),
-        h('div', { class: 'f' }, [
-          t.d === null || !isFinite(t.d) ? null : h('span', { class: 'delta ' + fmt.dir(t.d) }, [
-            h('span', { class: 'arrow', text: fmt.arrow(t.d), 'aria-hidden': 'true' }),
-            h('span', { text: fmt.pct(t.d) })
-          ]),
-          h('span', { text: t.f })
+  function drawHoldings() {
+    var pos = KH.market.positions().slice(0, 6);
+    if (!pos.length) {
+      KH.dom.fill(el.holdings, h('div', { class: 'empty' }, [icon('briefcase'),
+        h('span', { text: 'No holdings. Buy a stake on the Markets desk.' })]));
+      return;
+    }
+    KH.dom.fill(el.holdings, pos.map(function (p) {
+      var score = KH.sim.turnaroundScore(p.sym);
+      return h('button', {
+        class: 'row', type: 'button',
+        onclick: function () { KH.app.go('empire'); KH.views.empire.select(p.sym); }
+      }, [
+        h('span', { class: 'main' }, [
+          h('span', { class: 'line1' }, [h('b', { text: p.sym }), h('span', { class: 'when', text: fmt.moneyShort(p.value) })]),
+          h('span', { class: 'line2', text: p.name + ' · ' + (p.own * 100).toFixed(1) + '%' })
+        ]),
+        h('span', { class: 'score-pill ' + (score <= 0 ? 'doomed' : score < 35 ? 'hard' : score < 65 ? 'fair' : 'good'), text: String(score) })
+      ]);
+    }));
+  }
+
+  function drawNews() {
+    var g = KH.game.get();
+    var items = g.news.slice(0, 9);
+    if (!items.length) {
+      KH.dom.fill(el.news, h('div', { class: 'empty', text: 'Nothing has happened yet. Advance a week.' }));
+      return;
+    }
+    KH.dom.fill(el.news, items.map(function (n) {
+      return h('div', { class: 'feed-item' }, [
+        h('span', { class: 'ts', text: 'W' + n.week }),
+        h('span', { class: 'txt' }, [
+          h('b', { class: n.tone === 'good' ? 'tone-good' : n.tone === 'bad' ? 'tone-bad' : '', text: n.head }),
+          n.body ? ' — ' + n.body : ''
         ])
       ]);
     }));
@@ -218,12 +286,10 @@
       .filter(function (m) { return KH.app.isUnread(m) && m.folder !== 'sent' && m.folder !== 'drafts'; })
       .sort(function (a, b) { return (b.priority ? 1 : 0) - (a.priority ? 1 : 0) || b.when - a.when; })
       .slice(0, 5);
-
     if (!items.length) {
       KH.dom.fill(el.attention, h('div', { class: 'empty' }, [icon('check'), h('span', { text: 'Nothing outstanding' })]));
       return;
     }
-
     KH.dom.fill(el.attention, items.map(function (m) {
       var p = KH.people.get(m.from);
       return h('button', {
@@ -235,56 +301,15 @@
           h('span', { class: 'line1' }, [h('b', { text: p.name }), h('span', { class: 'when', text: fmt.whenShort(m.when) })]),
           h('span', { class: 'line2', text: m.subject })
         ]),
-        m.priority ? h('span', { class: 'chip hot', text: 'Priority' }) : null
+        m.choices && KH.game.get().inbox.handled[m.id] === undefined ? h('span', { class: 'chip warn tiny', text: 'Reply' }) : null
       ]);
     }));
   }
-
-  function drawMovers() {
-    var book = KH.market.book().slice().map(function (i) {
-      return { inst: i, ch: KH.market.change(i) };
-    }).sort(function (a, b) { return Math.abs(b.ch.pct) - Math.abs(a.ch.pct); }).slice(0, 5);
-
-    KH.dom.fill(el.movers, book.map(function (r) {
-      return h('button', {
-        class: 'row', type: 'button',
-        onclick: function () { KH.app.go('markets'); KH.views.markets.select(r.inst.sym); }
-      }, [
-        h('span', { class: 'main' }, [
-          h('span', { class: 'line1' }, [h('b', { text: r.inst.sym }), h('span', { class: 'when', text: fmt.group(r.inst.px, 2) + 'p' })]),
-          h('span', { class: 'line2', text: r.inst.name })
-        ]),
-        h('span', { class: 'delta ' + fmt.dir(r.ch.pct) }, [
-          h('span', { class: 'arrow', text: fmt.arrow(r.ch.pct), 'aria-hidden': 'true' }),
-          h('span', { text: fmt.pct(r.ch.pct) })
-        ])
-      ]);
-    }));
-  }
-
-  function refresh() {
-    if (!el.tiles) return;
-    var profile = KH.store.get('profile');
-    var firstName = fmt.firstName(profile.name) || 'there';
-    el.headline.textContent = greeting() + ', ' + firstName;
-    drawTiles(); drawPosition(); drawDonut(); drawAttention(); drawMovers(); syncRange();
-  }
-
-  var tickCount = 0;
 
   KH.views = KH.views || {};
   KH.views.overview = {
-    id: 'overview', label: 'Overview', icon: 'grid',
-    mount: mount,
-    activate: refresh,
-    tick: function (payload) {
-      if (!el.tiles) return;
-      if (el.sessionChip) {
-        el.sessionChip.textContent = payload.session.label;
-        el.sessionChip.className = 'chip ' + (payload.session.open ? 'good' : '');
-      }
-      if (++tickCount % 4 === 0) { drawTiles(); drawMovers(); }
-    },
-    refresh: refresh
+    id: 'overview', label: 'Command', icon: 'grid',
+    mount: mount, activate: refresh, refresh: refresh,
+    tick: function () {}
   };
 })(window.KH);

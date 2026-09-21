@@ -1,21 +1,22 @@
 /* ============================================================
-   The pricing engine.
+   The exchange.
 
-   Prices follow a geometric random walk with a small per-line
-   drift: log-normal steps, so a price can drift a long way but
-   can never walk through zero, and consecutive ticks look like
-   a market rather than a sawtooth.
+   Two clocks drive a price. The weekly clock moves an anchor
+   toward the company's fair value — earnings times a sector
+   multiple over shares in issue — and the fast clock walks the
+   quoted price around that anchor so the tape is alive between
+   weeks. Run a company well and the anchor climbs; the tape
+   follows it whether the market likes you or not.
 
-   History is built once from a fixed seed per instrument, so the
-   charts are the same every time the workspace opens; only the
-   live tail moves.
+   Cash and shareholdings live on the saved game, so a trade here
+   and a dividend in the simulation are the same pound.
    ============================================================ */
 
 (function (KH) {
   'use strict';
 
-  var SESSIONS = 90;     // daily candles behind each line
-  var INTRADAY = 150;    // minute-ish points in the live series
+  var SESSIONS = 90;
+  var INTRADAY = 150;
 
   var SPEEDS = {
     calm: { interval: 3000, scale: 0.5 },
@@ -23,15 +24,10 @@
     brisk: { interval: 800, scale: 1.7 }
   };
 
-  var state = {
-    running: false,
-    timer: null,
-    speed: 'normal',
-    lastTick: 0
-  };
-
-  var book = [];   // tradable instruments
-  var tape = [];   // quoted-only lines
+  var state = { running: false, timer: null, speed: 'normal' };
+  var book = [];
+  var tape = [];
+  var bySym = {};
 
   function hashSeed(sym) {
     var s = 0;
@@ -39,7 +35,6 @@
     return s;
   }
 
-  /** Build SESSIONS daily candles ending at the instrument's quoted price. */
   function buildCandles(inst) {
     var rand = KH.util.rng(hashSeed(inst.sym));
     var px = inst.px, raw = [];
@@ -51,19 +46,14 @@
       var spread = Math.abs(o - px) + o * inst.vol * (0.3 + rand() * 0.7);
       raw.push({ o: o, c: px, h: Math.max(o, px) + spread * rand() * 0.6, l: Math.min(o, px) - spread * rand() * 0.6 });
     }
-    // Rescale the whole path so the last close is the quoted price.
     var k = inst.px / px;
     var day = new Date();
     day.setHours(0, 0, 0, 0);
     return raw.map(function (c, i) {
-      return {
-        t: day.getTime() - (SESSIONS - 1 - i) * 86400000,
-        o: c.o * k, c: c.c * k, h: c.h * k, l: c.l * k
-      };
+      return { t: day.getTime() - (SESSIONS - 1 - i) * 86400000, o: c.o * k, c: c.c * k, h: c.h * k, l: c.l * k };
     });
   }
 
-  /** Build the intraday tail, ending exactly on the quoted price. */
   function buildIntraday(inst) {
     var rand = KH.util.rng(hashSeed(inst.sym) ^ 0x9e3779b9);
     var px = inst.prevClose, out = [];
@@ -90,6 +80,7 @@
     inst.open = inst.intraday[0].v;
     inst.high = Math.max.apply(null, inst.intraday.map(function (p) { return p.v; }));
     inst.low = Math.min.apply(null, inst.intraday.map(function (p) { return p.v; }));
+    inst.anchor = inst.px;
     inst.lastMove = 0;
     inst.volume = Math.round(180000 + KH.util.rng(hashSeed(inst.sym))() * 3400000);
     return inst;
@@ -98,11 +89,12 @@
   function init() {
     book = KH.instruments.list.map(function (i) { return prepare(Object.assign({}, i), false); });
     tape = KH.instruments.tape.map(function (i) { return prepare(Object.assign({}, i), true); });
+    bySym = {};
+    book.concat(tape).forEach(function (i) { bySym[i.sym] = i; });
+    if (KH.sim && KH.sim.seedFundamentals) KH.sim.seedFundamentals();
     setSpeed(KH.store.get('workspace').marketSpeed || 'normal');
   }
 
-  /** London cash session, used for the status label and to damp
-      overnight moves. Prices still breathe outside it. */
   function sessionState(now) {
     var d = now ? new Date(now) : new Date();
     var day = d.getDay();
@@ -113,11 +105,12 @@
     return { open: false, label: 'After hours — indicative pricing' };
   }
 
+  /** A walk around the anchor, pulled gently back toward it. */
   function step(inst, scale, damp) {
     var sigma = inst.vol * scale * damp * 0.09;
-    var drift = (inst.bias || 0) / 252 / 400;
     var before = inst.px;
-    inst.px = inst.px * Math.exp(drift - (sigma * sigma) / 2 + sigma * (Math.random() * 2 - 1) * 1.7);
+    var pull = inst.anchor ? (inst.anchor - inst.px) * 0.035 : 0;
+    inst.px = Math.max(0.5, inst.px * Math.exp(-(sigma * sigma) / 2 + sigma * (Math.random() * 2 - 1) * 1.7) + pull);
     inst.lastMove = inst.px - before;
     if (inst.px > inst.high) inst.high = inst.px;
     if (inst.px < inst.low) inst.low = inst.px;
@@ -132,46 +125,28 @@
     var damp = session.open ? 1 : 0.32;
     book.forEach(function (i) { step(i, s.scale, damp); });
     tape.forEach(function (i) { step(i, s.scale, damp); });
-    state.lastTick = Date.now();
     KH.bus.emit('market:tick', { session: session });
   }
 
-  function start() {
-    if (state.running) return;
-    state.running = true;
-    schedule();
-  }
+  function start() { if (state.running) return; state.running = true; schedule(); }
 
   function schedule() {
     clearInterval(state.timer);
     var s = SPEEDS[state.speed] || SPEEDS.normal;
-    state.timer = setInterval(function () {
-      if (document.hidden) return;   // a hidden tab burns nothing
-      tick();
-    }, s.interval);
+    state.timer = setInterval(function () { if (!document.hidden) tick(); }, s.interval);
   }
 
   function stop() { state.running = false; clearInterval(state.timer); }
+  function setSpeed(speed) { state.speed = SPEEDS[speed] ? speed : 'normal'; if (state.running) schedule(); }
 
-  function setSpeed(speed) {
-    state.speed = SPEEDS[speed] ? speed : 'normal';
-    if (state.running) schedule();
-  }
+  function get(sym) { return bySym[sym] || book[0]; }
+  function change(inst) { return { abs: inst.px - inst.prevClose, pct: ((inst.px - inst.prevClose) / inst.prevClose) * 100 }; }
 
-  function get(sym) { return book.filter(function (i) { return i.sym === sym; })[0] || book[0]; }
+  /* ---------- Dealing ------------------------------------------------- */
 
-  function change(inst) {
-    return { abs: inst.px - inst.prevClose, pct: ((inst.px - inst.prevClose) / inst.prevClose) * 100 };
-  }
-
-  /* ---------- Dealing ------------------------------------------------
-     Costs are charged on the way in and on the way out, because a
-     position that ignores them flatters itself.
-     ------------------------------------------------------------------ */
-
-  var COMMISSION_BPS = 12;     // 0.12%
+  var COMMISSION_BPS = 12;
   var MIN_COMMISSION = 12.5;
-  var STAMP_BPS = 50;          // 0.5%, charged on purchases only
+  var STAMP_BPS = 50;
 
   function costs(side, consideration) {
     var commission = Math.max(MIN_COMMISSION, (consideration * COMMISSION_BPS) / 10000);
@@ -182,13 +157,11 @@
 
   function quote(side, sym, qty) {
     var inst = get(sym);
-    var px = inst.px / 100;                     // quoted in pence, dealt in pounds
+    var px = inst.px / 100;
     var consideration = px * qty;
     var c = costs(side, consideration);
     return {
-      inst: inst, px: px, qty: qty,
-      consideration: consideration,
-      costs: c,
+      inst: inst, px: px, qty: qty, consideration: consideration, costs: c,
       net: side === 'buy' ? consideration + c.total : consideration - c.total
     };
   }
@@ -196,83 +169,94 @@
   function deal(side, sym, qty) {
     qty = Math.floor(Number(qty));
     if (!isFinite(qty) || qty <= 0) return { ok: false, reason: 'Enter a whole number of shares greater than zero.' };
-    if (qty > 10000000) return { ok: false, reason: 'Order exceeds the single-ticket limit of 10,000,000 shares.' };
+    var inst = get(sym);
+    if (!inst || inst.quotedOnly) return { ok: false, reason: 'That line is quoted for information and cannot be dealt.' };
 
-    var t = KH.store.get('trading');
+    var g = KH.game.get();
+    var held = g.corps[sym];
     var q = quote(side, sym, qty);
-    var held = t.positions[sym];
 
-    if (side === 'buy' && q.net > t.cash) {
-      return { ok: false, reason: 'Insufficient settled cash. This order needs ' + KH.fmt.money(q.net) + ' and ' + KH.fmt.money(t.cash) + ' is available.' };
+    if (qty > inst.shares) return { ok: false, reason: 'There are only ' + KH.fmt.group(inst.shares, 0) + ' shares in issue.' };
+    if (side === 'buy') {
+      var after = (held ? held.shares : 0) + qty;
+      if (after > inst.shares) return { ok: false, reason: 'That would take you past 100% of the company.' };
+      if (q.net > g.treasury.cash) {
+        return { ok: false, reason: 'Insufficient settled cash. This order needs ' + KH.fmt.money(q.net) + ' and ' + KH.fmt.money(g.treasury.cash) + ' is available.' };
+      }
     }
-    if (side === 'sell' && (!held || held.qty < qty)) {
-      return { ok: false, reason: 'You hold ' + (held ? KH.fmt.group(held.qty, 0) : '0') + ' ' + sym + '. Short selling is not enabled on this account.' };
+    if (side === 'sell' && (!held || held.shares < qty)) {
+      return { ok: false, reason: 'You hold ' + (held ? KH.fmt.group(held.shares, 0) : '0') + ' ' + sym + '. Short selling is not enabled on this account.' };
     }
+
+    var wasControl = KH.sim.controls(sym);
 
     if (side === 'buy') {
-      t.cash -= q.net;
-      if (held) {
-        held.avg = (held.avg * held.qty + q.consideration + q.costs.total) / (held.qty + qty);
-        held.qty += qty;
-      } else {
-        t.positions[sym] = { qty: qty, avg: (q.consideration + q.costs.total) / qty };
-      }
+      var rec = KH.game.corp(sym, true);
+      rec.avgCost = (rec.avgCost * rec.shares + q.consideration + q.costs.total) / (rec.shares + qty);
+      rec.shares += qty;
+      KH.game.post('dealing', 'Bought ' + KH.fmt.group(qty, 0) + ' ' + sym, -q.net);
     } else {
-      t.cash += q.net;
-      held.qty -= qty;
-      if (held.qty <= 0) delete t.positions[sym];
+      held.shares -= qty;
+      KH.game.post('dealing', 'Sold ' + KH.fmt.group(qty, 0) + ' ' + sym, q.net);
+      if (held.shares <= 0) {
+        // Keep the record if it carries staff or a chief executive; a
+        // sold-down company still has people you signed contracts with.
+        if (!held.staff.length && !held.ceo) delete g.corps[sym];
+        else held.shares = 0;
+      }
     }
 
-    t.blotter.unshift({
-      id: 'KH' + Date.now().toString(36).toUpperCase(),
-      ts: Date.now(), side: side, sym: sym, name: q.inst.name,
-      qty: qty, px: q.px, consideration: q.consideration,
-      fees: q.costs.total, net: q.net
-    });
-    if (t.blotter.length > 120) t.blotter.length = 120;
+    g.stats.deals += 1;
+    var nowControl = KH.sim.controls(sym);
+    if (!wasControl && nowControl) {
+      KH.game.headline('Control acquired: ' + inst.name,
+        'You now hold more than half of ' + sym + '. Strategy, pricing, people and the chief executive are yours.', 'good');
+      KH.bus.emit('sim:control', { sym: sym, gained: true });
+    } else if (wasControl && !nowControl) {
+      KH.game.headline('Control relinquished: ' + inst.name,
+        'You are below 50% of ' + sym + ' and no longer set its direction.', 'neutral');
+      KH.bus.emit('sim:control', { sym: sym, gained: false });
+    }
 
-    KH.store.save();
+    KH.game.save();
     KH.bus.emit('trading:changed', { side: side, sym: sym, qty: qty });
     return { ok: true, quote: q };
   }
 
-  /* ---------- Portfolio ---------------------------------------------- */
+  /* ---------- Portfolio ----------------------------------------------- */
 
   function positions() {
-    var t = KH.store.get('trading');
-    return Object.keys(t.positions).map(function (sym) {
-      var p = t.positions[sym];
+    var g = KH.game.get();
+    return Object.keys(g.corps).filter(function (sym) { return g.corps[sym].shares > 0; }).map(function (sym) {
+      var c = g.corps[sym];
       var inst = get(sym);
       var px = inst.px / 100;
-      var value = px * p.qty;
-      var cost = p.avg * p.qty;
+      var value = px * c.shares;
+      var cost = c.avgCost * c.shares;
       return {
-        sym: sym, name: inst.name, qty: p.qty, avg: p.avg, px: px,
+        sym: sym, name: inst.name, qty: c.shares, avg: c.avgCost, px: px,
         value: value, cost: cost, pnl: value - cost,
         pnlPct: cost ? ((value - cost) / cost) * 100 : 0,
-        dayPct: change(inst).pct, inst: inst
+        dayPct: change(inst).pct, own: KH.sim.ownership(sym), inst: inst
       };
     }).sort(function (a, b) { return b.value - a.value; });
   }
 
   function portfolio() {
-    var t = KH.store.get('trading');
+    var g = KH.game.get();
     var pos = positions();
     var invested = KH.util.sum(pos, function (p) { return p.value; });
     var cost = KH.util.sum(pos, function (p) { return p.cost; });
     return {
-      cash: t.cash,
-      invested: invested,
-      cost: cost,
-      total: t.cash + invested,
+      cash: g.treasury.cash, invested: invested, cost: cost,
+      total: g.treasury.cash + invested,
       pnl: invested - cost,
       pnlPct: cost ? ((invested - cost) / cost) * 100 : 0,
-      sinceStart: t.cash + invested - t.startingCash,
+      sinceStart: g.treasury.cash + invested - g.treasury.opening,
       positions: pos
     };
   }
 
-  /** A synthetic order book around the touch — five levels a side. */
   function depth(sym) {
     var inst = get(sym);
     var mid = inst.px, tickSize = Math.max(0.05, mid * 0.00035);
@@ -287,10 +271,8 @@
 
   KH.market = {
     init: init, start: start, stop: stop, tick: tick, setSpeed: setSpeed,
-    book: function () { return book; },
-    tape: function () { return tape; },
+    book: function () { return book; }, tape: function () { return tape; },
     get: get, change: change, quote: quote, deal: deal, costs: costs,
-    positions: positions, portfolio: portfolio, depth: depth,
-    session: sessionState
+    positions: positions, portfolio: portfolio, depth: depth, session: sessionState
   };
 })(window.KH);

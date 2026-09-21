@@ -354,11 +354,107 @@
     }
   ];
 
+  /* ---------- Replies that actually do something -------------------
+     Each option carries an effect on the group and the answer that
+     comes back. Decisions are recorded on the saved game, so a
+     mailbox is a record of what you chose, not a list of buttons.
+     ------------------------------------------------------------------ */
+
+  var CHOICES = {
+    m01: [
+      { label: 'Sign schedule 4 tonight', effect: { reputation: 4, scrutiny: -1 },
+        reply: 'Signed and returned within the hour. Committee sat at six and the chairman noted it.' },
+      { label: 'Sign, but move synergies out of year one', effect: { reputation: 6, scrutiny: -2 },
+        reply: 'Redrafted at your instruction. The chairman called it the first honest forecast he has seen in four years.' },
+      { label: 'Refuse to sign until the model is re-run', effect: { reputation: -3, scrutiny: -4 },
+        reply: 'Committee stood down. Irritation all round, and a materially better set of numbers by Friday.' }
+    ],
+    m02: [
+      { label: 'Cut the deck to one slide', effect: { reputation: 5 },
+        reply: 'One slide. One number. He photographed it and sent it back with a single word: yes.' },
+      { label: 'Explain why the detail matters', effect: { reputation: -2 },
+        reply: 'He did not reply for six days. When he did, it said: "41 slides. Still 41 slides."' }
+    ],
+    m03: [
+      { label: 'Approve two more induction points', effect: { cash: -46000, prestige: 4, reputation: 2 },
+        reply: 'BEAUTIFUL. ABSOLUTELY BEAUTIFUL. THREE HUNDRED COVERS AND NOT ONE COMPLAINT. THE LAMB SAUCE WAS FOUND.' },
+      { label: 'Tell him to work with the kitchen as it is', effect: { reputation: -2, prestige: -2 },
+        reply: 'HE WORKED WITH IT. IT WAS FINE. FINE IS THE WORST WORD IN THE ENGLISH LANGUAGE AND YOU DID THIS.' }
+    ],
+    m05: [
+      { label: 'Sign the beneficiary schedule', effect: { cash: -12000, scrutiny: 3 },
+        reply: 'Lovely. All filed. You really have nothing at all to worry about now. Nothing whatsoever.' },
+      { label: 'Ask your own solicitor to review it first', effect: { reputation: 3, scrutiny: -2 },
+        reply: 'Of course. Entirely sensible. There is no rush at all. None. Take all the time you need.' },
+      { label: 'Decline and cancel the conservatory survey', effect: { reputation: 4 },
+        reply: 'A shame. I had cleared the whole afternoon. Do let me know if you change your mind.' }
+    ],
+    m06: [
+      { label: 'Accept the cap at 22% and the six-month tail', effect: { cash: -180000, reputation: 5 },
+        reply: 'Signed Thursday. Completion the following Tuesday. Clean process, and they did not find the thing in the data room.' },
+      { label: 'Hold firm at 18% and risk the deal', effect: { reputation: -4, scrutiny: 2 },
+        reply: 'They walked, came back in nine days, and settled at 20%. It cost you a fortnight and the chairman\u2019s patience.' }
+    ],
+    m07: [
+      { label: 'Decline politely', effect: { reputation: 2 },
+        reply: 'ok. no hard feelings. i am starting a competing holding company. it is called Holdings. it will be better' },
+      { label: 'Name an absurd price', effect: { prestige: 6, reputation: -1 },
+        reply: 'love it. respect. i am not paying that but i am going to tell people you asked for it' }
+    ],
+    m17: [
+      { label: 'Find the \u00a34.20 receipt', effect: { reputation: 3 },
+        reply: 'Received and processed. Thank you. I have marked the claim complete. Everyone is treated the same here.' },
+      { label: 'Tell her to write it off', effect: { reputation: -6, scrutiny: 4 },
+        reply: 'I have written it off as instructed and noted on the file that it was written off at your instruction.' }
+    ],
+    m26: [
+      { label: 'Accept dinner and the navy suit', effect: { prestige: 8, reputation: 4 },
+        reply: 'Correct on both counts. Kabletown came up two turns before the dessert. You are now a man I return calls to.' },
+      { label: 'Decline — you do not need Sheinhardt', effect: { reputation: -2 },
+        reply: 'A mistake, but an honest one. I respect the decision and I will remember it for exactly as long as it suits me.' }
+    ],
+    m27: [
+      { label: 'Fly out to the estate', effect: { cash: -84000, prestige: 9, reputation: 3 },
+        reply: 'Good. We swam, we argued, and we signed. You are harder work than you look, which in my book is a compliment.' },
+      { label: 'Send the corporate finance team instead', effect: { reputation: -3 },
+        reply: 'I do not deal with teams. I deal with principals. The offer stands, three per cent worse.' }
+    ],
+    m29: [
+      { label: 'Take the stake at the 6% discount', effect: { cash: -260000, reputation: 6, prestige: 4 },
+        reply: 'Papered this afternoon. Welcome to the register, and I will see you at the first board meeting in October.' },
+      { label: 'Negotiate for a full board seat now', effect: { reputation: -2, prestige: 2 },
+        reply: 'No. Observer at twelve months or nothing. I said best and final and I meant it. The offer closes Friday.' },
+      { label: 'Decline — buy in the market instead', effect: { scrutiny: 5 },
+        reply: 'Then buy quietly and stay under three per cent, or we both end up making an announcement neither of us wants.' }
+    ],
+    m28: [
+      { label: 'Invest \u00a325,000 in the beeper market', effect: { cash: -25000, reputation: -4 },
+        reply: 'YES. You will not regret this. Technology is cyclical. I will send quarterly updates. There were no quarterly updates.' },
+      { label: 'Decline', effect: { reputation: 1 },
+        reply: 'Your loss. Literally. In about eighteen months. Mark this email.' }
+    ],
+    m15: [
+      { label: 'Put twenty thousand in', effect: { cash: -20000, reputation: -3, prestige: 1 },
+        reply: 'Lovely jubbly! They\u2019ve got a plug on them. Slight issue with which country the plug is for. Still a bargain though.' },
+      { label: 'Decline', effect: {},
+        reply: 'No worries, Gav. This time next year, eh? This time next year.' }
+    ],
+    m16: [
+      { label: 'Commission a pilot of Monkey Tennis', effect: { cash: -140000, prestige: 5, reputation: -5 },
+        reply: 'YES! Monkey Tennis is GO. I have booked a court, six monkeys and a man from the zoo who says it will not work.' },
+      { label: 'Offer a first-look deal on Youth Hostelling', effect: { cash: -60000, prestige: 3 },
+        reply: 'Chris Eubank has said yes. Chris Eubank has said yes! I am going to be sick. In a good way. Mostly.' },
+      { label: 'Pass', effect: {},
+        reply: 'Understood. I shall put Monkey Tennis on the back burner. Not off the hob. Back.' }
+    ]
+  };
+
   var opened = Date.now();
 
   MESSAGES.forEach(function (m) {
     m.when = opened - m.mins * 60000;
     m.preview = m.body[0].slice(0, 160);
+    m.choices = CHOICES[m.id] || null;
   });
 
   function inFolder(id) {
@@ -368,6 +464,7 @@
 
   KH.mail = {
     folders: FOLDERS,
+    choices: CHOICES,
     messages: MESSAGES,
     inFolder: inFolder,
     get: function (id) { return MESSAGES.filter(function (m) { return m.id === id; })[0] || null; }

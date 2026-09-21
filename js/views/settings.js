@@ -185,6 +185,8 @@
     ]);
   }
 
+  var el = {};
+
   function mount(root) {
     root.appendChild(h('div', { class: 'view-head' }, [
       h('div', { class: 'titles' }, [
@@ -268,34 +270,138 @@
       h('div', { class: 'panel-body flush' }, [wealthRow()])
     ]));
 
-    /* ---- Dealing account ---- */
-    var t = KH.store.get('trading');
+    /* ---- Simulation ---- */
+    var PACES = [
+      { id: 'paused', label: '\u2016', title: 'Paused' },
+      { id: 'slow', label: '\u25b6', title: 'Slow \u2014 45s a week' },
+      { id: 'normal', label: '\u25b6\u25b6', title: 'Normal \u2014 24s a week' },
+      { id: 'fast', label: '\u25b6\u25b6\u25b6', title: 'Fast \u2014 12s a week' },
+      { id: 'rapid', label: '\u25b6\u25b6\u25b6\u25b6', title: 'Rapid \u2014 6s a week' }
+    ];
+    var paceGroup = h('div', { class: 'pace-control', role: 'group', 'aria-label': 'Speed of time' });
+    PACES.forEach(function (p2) {
+      paceGroup.appendChild(h('button', {
+        type: 'button', class: 'pace-btn', title: p2.title, 'aria-label': p2.title,
+        'aria-pressed': KH.clock.pace() === p2.id ? 'true' : 'false',
+        text: p2.label,
+        onclick: function () {
+          KH.clock.setPace(p2.id);
+          KH.store.set('workspace', { simPace: p2.id });
+          KH.dom.$$('.pace-btn', paceGroup).forEach(function (b) { b.setAttribute('aria-pressed', b.title === p2.title ? 'true' : 'false'); });
+          KH.sound.play('click');
+        }
+      }));
+    });
+
     wrap.appendChild(h('div', { class: 'panel' }, [
-      h('div', { class: 'panel-head' }, [icon('chart', 'sub'), h('h2', { text: 'Dealing account' })]),
+      h('div', { class: 'panel-head' }, [icon('clock', 'sub'), h('h2', { text: 'Simulation' }), h('div', { class: 'spacer' }),
+        el.clockChip = h('span', { class: 'sub' })]),
       h('div', { class: 'panel-body flush' }, [
-        row('Opening capital', 'The balance the account is restored to when it is reset.',
-          h('input', {
-            class: 'field num', type: 'number', min: '0', step: '1000', value: String(t.startingCash),
-            'aria-label': 'Opening capital',
-            onchange: function (ev) {
-              var v = Math.max(0, Math.floor(Number(ev.target.value) || 0));
-              KH.store.set('trading', { startingCash: v });
-              ev.target.value = String(v);
+        row('Speed of time', 'How quickly a simulated week passes. Pause it to think, or run it fast to see a strategy play out.', paceGroup),
+        row('Step forward', 'Advance the simulation by exactly one week and settle everything.',
+          h('button', { class: 'btn primary', type: 'button', text: 'Advance one week',
+            onclick: function () { KH.clock.advance(true); KH.sound.play('week'); KH.app.refreshAll(); updateClockChip(); } })),
+        segRow('Market pace', 'How briskly quoted prices move between weeks.', 'workspace', 'marketSpeed', [
+          { value: 'calm', label: 'Calm' }, { value: 'normal', label: 'Normal' }, { value: 'brisk', label: 'Brisk' }
+        ], function (v) { KH.market.setSpeed(v); })
+      ])
+    ]));
+
+    /* ---- Treasury ---- */
+    var tre = KH.game.get().treasury;
+    wrap.appendChild(h('div', { class: 'panel' }, [
+      h('div', { class: 'panel-head' }, [icon('chart', 'sub'), h('h2', { text: 'Treasury' })]),
+      h('div', { class: 'panel-body flush' }, [
+        row('Settled cash', 'Available to deploy right now.',
+          h('span', { class: 'num', style: { fontWeight: '600' }, text: fmt.money(tre.cash, 0) })),
+        row('State facility outstanding', 'Drawn under the Treasury stabilisation arrangement.',
+          h('span', { class: 'num', style: { fontWeight: '600', color: tre.debt ? 'var(--down)' : 'inherit' }, text: fmt.money(tre.debt, 0) })),
+        tre.debt > 0 ? row('Repay the facility', 'Clearing it in full returns eight reputation points.',
+          h('button', {
+            class: 'btn', type: 'button', text: 'Repay ' + fmt.moneyShort(Math.min(tre.debt, tre.cash)),
+            onclick: function () {
+              var res = KH.sim.repayDebt(Math.min(tre.debt, tre.cash));
+              if (!res.ok) { KH.app.toast('Not repaid', res.reason, 'alert'); return; }
+              KH.app.toast('Repaid', fmt.money(res.paid, 0) + ' returned to the Treasury.', 'money');
+              KH.app.refreshAll();
+            }
+          })) : null,
+        row('Transaction ledger', 'Export the full history as a PDF.',
+          h('button', { class: 'btn', type: 'button', text: 'Export ledger (PDF)',
+            onclick: function () { KH.reports.ledger(120); KH.app.toast('Ledger exported', 'Saved as a PDF.', 'check'); } }))
+      ])
+    ]));
+
+    /* ---- Saved game ---- */
+    var importInput = h('input', { type: 'file', accept: '.json,application/json', style: { display: 'none' },
+      onchange: function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var res = KH.game.importSave(String(reader.result));
+          if (!res.ok) { KH.app.toast('Could not load', res.reason, 'alert'); return; }
+          KH.market.init();
+          KH.assets.setScale(KH.app.factorFor(KH.store.get('workspace').netWorth));
+          KH.app.refreshAll();
+          KH.app.toast('Game loaded', 'Your saved position has been restored.', 'check');
+        };
+        reader.onerror = function () { KH.app.toast('Could not read the file', 'The browser refused to open it.', 'alert'); };
+        reader.readAsText(file);
+        ev.target.value = '';
+      } });
+
+    var g = KH.game.get();
+    wrap.appendChild(h('div', { class: 'panel' }, [
+      h('div', { class: 'panel-head' }, [icon('archive', 'sub'), h('h2', { text: 'Saved game' }), h('div', { class: 'spacer' }),
+        h('span', { class: 'sub', text: KH.game.isPersistent() ? 'Saving automatically' : 'Session only' })]),
+      h('div', { class: 'panel-body flush' }, [
+        row('Progress', 'Week ' + g.clock.week + ', year ' + g.clock.year + ' \u00b7 ' + g.stats.weeksRun + ' weeks played \u00b7 ' +
+          g.stats.deals + ' deals \u00b7 ' + g.stats.hires + ' hires \u00b7 ' + g.stats.bailouts + ' bailouts',
+          h('span', { class: 'chip accent', text: fmt.moneyShort(KH.sim.netWorth().total) })),
+        row('Export save file', 'Download the whole game as a file you can keep or move to another machine.',
+          h('button', {
+            class: 'btn', type: 'button', text: 'Download save',
+            onclick: function () {
+              var blob = new Blob([KH.game.exportSave()], { type: 'application/json' });
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement('a');
+              a.href = url;
+              a.download = 'KellettHoldings_Y' + g.clock.year + 'W' + g.clock.week + '.json';
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              setTimeout(function () { URL.revokeObjectURL(url); }, 8000);
+              KH.app.toast('Save exported', 'Keep it somewhere safe.', 'check');
             }
           })),
-        row('Settled cash', 'Currently available to invest.', h('span', { class: 'num', style: { fontWeight: '600' }, text: fmt.money(t.cash, 0) })),
-        row('Reset dealing account', 'Closes every open position and restores the opening capital.',
+        row('Load save file', 'Replaces the game currently in progress.',
+          h('span', {}, [importInput, h('button', { class: 'btn', type: 'button', text: 'Choose file\u2026',
+            onclick: function () { importInput.click(); } })])),
+        row('Start a new game', 'Clears every holding, property, appointment and decision.',
           h('button', {
-            class: 'btn', type: 'button', text: 'Reset account',
-            onclick: function () {
-              var start = KH.store.get('trading').startingCash;
-              KH.store.set('trading', { cash: start, positions: {}, blotter: [] });
+            class: 'btn', type: 'button', text: 'New game',
+            onclick: function (ev) {
+              var btn = ev.target;
+              if (btn.dataset.armed !== '1') {
+                btn.dataset.armed = '1';
+                btn.textContent = 'Confirm \u2014 this cannot be undone';
+                setTimeout(function () { if (btn.isConnected) { btn.dataset.armed = '0'; btn.textContent = 'New game'; } }, 5000);
+                return;
+              }
+              KH.game.reset();
+              KH.market.init();
+              KH.app.applyWealth(KH.store.get('workspace').netWorth, false);
               KH.app.refreshAll();
-              KH.app.toast('Dealing account reset', 'Positions closed and cash restored to ' + fmt.money(start, 0) + '.');
+              KH.app.toast('New game', 'Everything is back to week one.', 'check');
             }
           }))
       ])
     ]));
+
+    function updateClockChip() {
+      var gg = KH.game.get();
+      if (el.clockChip) el.clockChip.textContent = 'Week ' + gg.clock.week + ' \u00b7 Year ' + gg.clock.year;
+    }
+    updateClockChip();
 
     /* ---- Data ---- */
     wrap.appendChild(h('div', { class: 'panel danger-zone' }, [

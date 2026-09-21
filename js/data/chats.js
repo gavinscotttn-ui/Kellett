@@ -11,6 +11,13 @@
 
   var CONVERSATIONS = [
     {
+      id: 'mike', kind: 'dm', with: 'mike', slot: 2, pinned: true, assistant: 'mike',
+      messages: [
+        { from: 'mike', text: 'Morning. I have the overnight position, the ledger and the whole board in front of me. Ask me anything \u2014 what to buy, how to take control of something, who to hire, whether anybody is stealing from you, which works pay back. I will do the arithmetic and give you the number.', mins: 6 }
+      ],
+      incoming: []
+    },
+    {
       id: 'nightingale', kind: 'group', name: 'Project NIGHTINGALE — deal team',
       sub: 'Tarquin, Adaeze, Renée, Evelyn', members: ['tarquin', 'okonjo', 'vasquez', 'sterling'], slot: 0, pinned: true,
       messages: [
@@ -133,6 +140,43 @@
       incoming: []
     },
     {
+      id: 'jarvis', kind: 'dm', with: 'jarvis', slot: 6,
+      messages: [
+        { from: 'jarvis', text: 'Here. That shop of yours in Craiglang. The shutter\u2019s stuck again.', mins: 320 },
+        { from: 'self', text: 'I will get somebody out.', mins: 318 },
+        { from: 'jarvis', text: 'Aye, well, Winston had a go at it with a broom handle and now it\u2019s stuck the other way.', mins: 316 },
+        { from: 'self', text: 'Tell Winston to stop.', mins: 314 },
+        { from: 'jarvis', text: 'He\u2019ll no\u2019 stop. He\u2019s got a system.', mins: 312 }
+      ],
+      incoming: [
+        { from: 'jarvis', text: 'Shutter\u2019s fine now. Winston says you owe him a fiver and a pie.', at: 178, typing: 2400 }
+      ]
+    },
+    {
+      id: 'homer', kind: 'dm', with: 'homer', slot: 3,
+      messages: [
+        { from: 'homer', text: 'Hi. Are you the new guy who owns the plant?', mins: 240 },
+        { from: 'self', text: 'I am a shareholder, yes.', mins: 238 },
+        { from: 'homer', text: 'Great. Quick question. What does the flashing red one mean?', mins: 236 },
+        { from: 'self', text: 'Which flashing red one.', mins: 234 },
+        { from: 'homer', text: 'All of them.', mins: 232 }
+      ],
+      incoming: [
+        { from: 'homer', text: 'Never mind! I put a doughnut on it and it stopped.', at: 210, typing: 2600 }
+      ]
+    },
+    {
+      id: 'desanta', kind: 'dm', with: 'desanta', slot: 7,
+      messages: [
+        { from: 'desanta', text: 'So the slate. I got three pictures, two of them are good and one of them is a favour.', mins: 400 },
+        { from: 'self', text: 'Which is the favour?', mins: 398 },
+        { from: 'desanta', text: 'You do not want to know. I do not want to know. It is already shooting.', mins: 396 },
+        { from: 'self', text: 'Budget?', mins: 394 },
+        { from: 'desanta', text: 'Look, I am semi-retired. I say that a lot. Nobody believes me either.', mins: 392 }
+      ],
+      incoming: []
+    },
+    {
       id: 'tnet', kind: 'dm', with: 'tnet', slot: 3, pinned: true,
       messages: [
         { from: 'tnet', text: 'Board approved the discount. 6%, twelve-month lock-up, observer seat. That is my best and final and I am not being coy about it.', mins: 58 },
@@ -243,6 +287,36 @@
       'That is acceptable to the chair.',
       'We will revisit at the next scheduled meeting.',
       'Thank you. That settles it for now.'
+    ],
+    jarvis: [
+      'Aye, right enough.',
+      'I\u2019ll tell Winston. He\u2019ll no\u2019 listen, but I\u2019ll tell him.',
+      'That\u2019s you sorted then. Cheerio.',
+      'See when you\u2019re down this way \u2014 the pies are back on at the Clansman.'
+    ],
+    homer: [
+      'Woo hoo!',
+      'Okay. And this is the part where I do nothing, right? I am great at that part.',
+      'Mmm\u2026 shareholder value.',
+      'Got it. Doing the opposite of that immediately.'
+    ],
+    desanta: [
+      'Yeah. Yeah, okay. That works.',
+      'Fine. But I am not going back to the office for it.',
+      'You know what, that is the first sensible thing I have heard this month.',
+      'I will make the call. Then I am done. I mean it this time.'
+    ],
+    cropper: [
+      'Right you are. I\u2019ll make a note.',
+      'I\u2019ve written it in the book. The blue book, not the red one.',
+      'That should be fine. I\u2019ll do the order Thursday.',
+      'Thank you. I do appreciate being kept informed.'
+    ],
+    peter: [
+      'Ohhh, that is a good idea. Wait, is it?',
+      'Heheheheh. Sure. Whatever Carter says.',
+      'Can I expense that? I am going to expense that.',
+      'Roadhouse.'
     ],
     tnet: [
       'Noted \u2014 I will get that to the board.',

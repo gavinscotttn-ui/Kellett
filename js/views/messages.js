@@ -98,7 +98,7 @@
       c.messages.push({ from: 'self', text: text, when: Date.now() });
       renderThread();
       renderList();
-      scheduleReply(c);
+      scheduleReply(c, text);
     }
 
     KH.dom.fill(el.thread, [
@@ -138,8 +138,8 @@
         mine ? null : h('span', { class: 'avatar sm', style: { background: p.color }, text: p.initials, 'aria-hidden': 'true' }),
         h('div', {}, [
           (!mine && c.kind === 'group') ? h('div', { class: 'who-tag', text: p.name }) : null,
-          h('div', { class: 'bubble' }, [
-            h('span', { text: m.text }),
+          h('div', { class: 'bubble' + (c.assistant ? ' assistant' : '') }, [
+            h('span', { class: 'bubble-text', text: m.text }),
             h('span', { class: 'stamp', text: fmt.time(m.when) })
           ])
         ])
@@ -191,7 +191,13 @@
     });
   }
 
-  function scheduleReply(conv) {
+  function scheduleReply(conv, asked) {
+    // Mike is not a canned reply pool. He reads the live state and answers.
+    if (conv.assistant === 'mike') {
+      var answer = KH.mike.ask(asked);
+      showTyping(conv, 700 + Math.min(2400, answer.length * 4), function () { deliver(conv, 'mike', answer); });
+      return;
+    }
     var pool = conv.replies || [];
     if (!pool.length) return;
     var responder = conv.kind === 'dm' ? conv.with : conv.members[conv.replyIndex % conv.members.length];
@@ -210,6 +216,7 @@
   KH.views.messages = {
     id: 'messages', label: 'Messaging', icon: 'chat',
     mount: mount,
+    open: function (id) { if (el.list) select(id); else current.id = id; },
     activate: function () { renderList(); },
     badge: totalUnread,
     stop: function () { timers.forEach(clearTimeout); timers = []; }

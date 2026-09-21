@@ -2,11 +2,13 @@
   "name": "kellett-holdings-workspace",
   "version": "1.0.0",
   "private": true,
-  "description": "Kellett Holdings — Group Principal Workspace. A self-contained desktop dashboard that runs straight from the filesystem.",
+  "description": "Kellett Holdings \u2014 a self-contained business simulation that runs offline from a single HTML file.",
   "license": "UNLICENSED",
   "scripts": {
     "test": "node test/ui-check.mjs",
-    "shots": "node test/screenshots.mjs"
+    "test:sim": "node test/sim-check.mjs",
+    "shots": "node test/screenshots.mjs",
+    "build": "python3 build.py"
   },
   "devDependencies": {
     "playwright": "^1.49.0"

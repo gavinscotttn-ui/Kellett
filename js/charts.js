@@ -64,7 +64,11 @@
       tip = h('div', { class: 'chart-tip', hidden: true, role: 'status', 'aria-live': 'off' });
       el.appendChild(tip);
     }
-    Array.prototype.slice.call(el.querySelectorAll('svg')).forEach(function (n) { n.remove(); });
+    // Anything that is not the tooltip is a previous render — an SVG, or
+    // the placeholder shown while there was nothing to plot.
+    Array.prototype.slice.call(el.childNodes).forEach(function (n) {
+      if (n !== tip) el.removeChild(n);
+    });
     return tip;
   }
 

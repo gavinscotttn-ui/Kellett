@@ -24,7 +24,11 @@
       h('div', { class: 'spacer' }),
       h('div', { class: 'actions' }, [
         el.sessionChip = h('span', { class: 'chip' }),
-        el.cashChip = h('span', { class: 'chip accent' })
+        el.cashChip = h('span', { class: 'chip accent' }),
+        h('button', {
+          class: 'btn', type: 'button',
+          onclick: function () { KH.reports.marketSheet(); KH.app.toast('Market sheet exported', 'Saved as a PDF to your downloads.', 'check'); }
+        }, [icon('download'), h('span', { text: 'Market sheet' })])
       ])
     ]));
 
@@ -51,7 +55,8 @@
         h('div', { class: 'tbl-wrap scroll' },
           h('table', { class: 'tbl' }, [
             h('thead', {}, h('tr', {}, [
-              h('th', { text: 'Code' }), h('th', { class: 'r', text: 'Last' }), h('th', { class: 'r', text: 'Change' })
+              h('th', { text: 'Code' }), h('th', { class: 'r', text: 'Last' }),
+              h('th', { class: 'r', text: 'Change' }), h('th', { class: 'r', text: 'Score' })
             ])),
             el.watch
           ]))
@@ -114,12 +119,13 @@
     });
 
     if (!list.length) {
-      KH.dom.fill(el.watch, h('tr', {}, h('td', { colspan: '3' }, h('div', { class: 'empty', text: 'No instrument matches that filter' }))));
+      KH.dom.fill(el.watch, h('tr', {}, h('td', { colspan: '4' }, h('div', { class: 'empty', text: 'No instrument matches that filter' }))));
       return;
     }
 
     KH.dom.fill(el.watch, list.map(function (i) {
       var ch = KH.market.change(i);
+      var sc = KH.sim.turnaroundScore(i.sym);
       var px = h('td', { class: 'r num', text: fmt.group(i.px, 2) });
       var delta = h('td', { class: 'r' }, h('span', { class: 'delta ' + fmt.dir(ch.pct) }, [
         h('span', { class: 'arrow', text: fmt.arrow(ch.pct), 'aria-hidden': 'true' }),
@@ -134,7 +140,11 @@
           h('div', { class: 'sym', text: i.sym }),
           h('div', { class: 'muted', style: { fontSize: 'var(--type-micro)' }, text: i.sector })
         ]),
-        px, delta
+        px, delta,
+        h('td', { class: 'r' }, h('span', {
+          class: 'score-pill ' + (sc <= 0 ? 'doomed' : sc < 35 ? 'hard' : sc < 65 ? 'fair' : 'good'),
+          title: KH.sim.turnaroundLabel(sc), text: String(sc)
+        }))
       ]);
       rowRefs[i.sym] = { tr: tr, px: px, delta: delta, last: i.px };
       return tr;
@@ -173,7 +183,9 @@
   function renderQuote() {
     var i = KH.market.get(current.sym);
     var ch = KH.market.change(i);
-    var pos = KH.store.get('trading').positions[i.sym];
+    var corp = KH.game.get().corps[i.sym];
+    var own = KH.sim.ownership(i.sym);
+    var score = KH.sim.turnaroundScore(i.sym);
 
     KH.dom.fill(el.quoteHead, [
       h('div', { class: 'q-name' }, [
@@ -193,7 +205,9 @@
         stat('Day low', fmt.group(i.low, 2) + 'p'),
         stat('Previous close', fmt.group(i.prevClose, 2) + 'p'),
         stat('Volume', fmt.shortNum(i.volume)),
-        stat('Holding', pos ? fmt.group(pos.qty, 0) + ' shares' : 'None'),
+        stat('Holding', corp && corp.shares ? (own * 100).toFixed(2) + '%' : 'None'),
+        stat('Fair value', fmt.group(KH.sim.fairPrice(i), 2) + 'p'),
+        stat('Turnaround', score + ' \u00b7 ' + KH.sim.turnaroundLabel(score)),
         h('div', { style: { marginLeft: 'auto' } }, el.modeCtl = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Chart period' }, [
           h('button', { type: 'button', text: 'Intraday', 'aria-pressed': current.mode === 'intraday' ? 'true' : 'false', onclick: function () { current.mode = 'intraday'; syncMode(); drawChart(); } }),
           h('button', { type: 'button', text: '90 sessions', 'aria-pressed': current.mode === 'sessions' ? 'true' : 'false', onclick: function () { current.mode = 'sessions'; syncMode(); drawChart(); } })
@@ -254,7 +268,7 @@
 
   function renderTicket() {
     var i = KH.market.get(current.sym);
-    var t = KH.store.get('trading');
+    var t = KH.game.get().treasury;
 
     var qtyInput = h('input', {
       class: 'field num', type: 'number', min: '1', step: '1', value: String(current.qty),
@@ -293,7 +307,16 @@
       KH.bus.emit('portfolio:changed');
     }
 
+    var ownNow = KH.sim.ownership(i.sym);
+    var ctrl = KH.mike.costToControl(i.sym);
+
     KH.dom.fill(el.ticket, [
+      ownNow > 0 ? h('div', { class: 'callout ' + (ownNow >= KH.sim.CONTROL ? 'good' : '') }, [
+        icon(ownNow >= KH.sim.CONTROL ? 'check' : 'info'),
+        h('span', { text: ownNow >= KH.sim.CONTROL
+          ? 'You control this company. Manage it from Empire.'
+          : 'You hold ' + (ownNow * 100).toFixed(2) + '%. Control needs ' + fmt.group(ctrl.need, 0) + ' more shares, about ' + fmt.money(ctrl.cost, 0) + '.' })
+      ]) : null,
       h('div', {}, [
         h('span', { class: 'lbl', text: 'Instrument' }),
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
@@ -309,7 +332,11 @@
         h('div', { class: 'qty-row' }, [
           qtyInput,
           h('button', { class: 'btn sm', type: 'button', text: '×2', onclick: function () { current.qty = Math.max(1, current.qty * 2); qtyInput.value = String(current.qty); updateSummary(); } }),
-          h('button', { class: 'btn sm', type: 'button', text: 'Max', title: 'Largest whole quantity your cash covers', onclick: function () {
+          h('button', {
+          class: 'btn sm', type: 'button', text: '50%', title: 'Enough shares to take control',
+          onclick: function () { current.qty = Math.max(1, ctrl.need || 1); qtyInput.value = String(current.qty); updateSummary(); }
+        }),
+        h('button', { class: 'btn sm', type: 'button', text: 'Max', title: 'Largest whole quantity your cash covers', onclick: function () {
             var px = i.px / 100;
             var max = Math.floor((t.cash * 0.994) / px);
             current.qty = Math.max(0, max);
@@ -327,7 +354,7 @@
         h('button', { class: 'btn sell', type: 'button', text: 'Sell', onclick: function () { place('sell'); } })
       ]),
       h('div', { style: { fontSize: 'var(--type-micro)', color: 'var(--text-muted)', lineHeight: '1.45' },
-        text: 'Settled cash ' + fmt.money(t.cash, 0) + '. Orders execute at the prevailing quote; costs are charged on both sides of a trade.' })
+        text: 'Settled cash ' + fmt.money(KH.game.get().treasury.cash, 0) + '. Orders execute at the prevailing quote; costs are charged on both sides of a trade.' })
     ]);
     updateSummary();
   }
@@ -355,14 +382,16 @@
       KH.dom.fill(el.tabBody, h('table', { class: 'tbl' }, [
         h('thead', {}, h('tr', {}, [
           h('th', { text: 'Code' }), h('th', { text: 'Instrument' }),
+          h('th', { class: 'r', text: 'Stake' }),
           h('th', { class: 'r', text: 'Qty' }), h('th', { class: 'r', text: 'Avg cost' }),
           h('th', { class: 'r', text: 'Last' }), h('th', { class: 'r', text: 'Value' }),
           h('th', { class: 'r', text: 'Unrealised' })
         ])),
         h('tbody', {}, p.positions.map(function (r) {
-          return h('tr', { class: 'clickable', onclick: function () { select(r.sym); } }, [
+          return h('tr', { class: 'clickable', onclick: function () { KH.app.go('empire'); KH.views.empire.select(r.sym); } }, [
             h('td', { class: 'sym', text: r.sym }),
             h('td', { class: 'muted', text: r.name }),
+            h('td', { class: 'r num', text: (r.own * 100).toFixed(2) + '%' }),
             h('td', { class: 'r num', text: fmt.group(r.qty, 0) }),
             h('td', { class: 'r num', text: fmt.money(r.avg, 4) }),
             h('td', { class: 'r num', text: fmt.group(r.px * 100, 2) + 'p' }),
@@ -375,27 +404,28 @@
         }))
       ]));
     } else {
-      var blotter = KH.store.get('trading').blotter;
+      var blotter = KH.game.get().ledger.filter(function (r) {
+        return r.kind === 'dealing' || r.kind === 'property' || r.kind === 'lifestyle' || r.kind === 'bailout';
+      }).slice(0, 80);
       if (!blotter.length) {
-        KH.dom.fill(el.tabBody, h('div', { class: 'empty' }, [icon('archive'), h('span', { text: 'No orders have been placed on this account.' })]));
+        KH.dom.fill(el.tabBody, h('div', { class: 'empty' }, [icon('archive'), h('span', { text: 'No transactions on this account yet.' })]));
         return;
       }
       KH.dom.fill(el.tabBody, h('table', { class: 'tbl' }, [
         h('thead', {}, h('tr', {}, [
-          h('th', { text: 'Time' }), h('th', { text: 'Reference' }), h('th', { text: 'Side' }),
-          h('th', { text: 'Code' }), h('th', { class: 'r', text: 'Qty' }),
-          h('th', { class: 'r', text: 'Price' }), h('th', { class: 'r', text: 'Costs' }), h('th', { class: 'r', text: 'Net' })
+          h('th', { text: 'Period' }), h('th', { text: 'Time' }), h('th', { text: 'Category' }),
+          h('th', { text: 'Narrative' }), h('th', { class: 'r', text: 'Amount' })
         ])),
         h('tbody', {}, blotter.map(function (b) {
           return h('tr', {}, [
-            h('td', { class: 'num muted', text: fmt.timeSec(b.ts) }),
-            h('td', { class: 'muted', text: b.id }),
-            h('td', {}, h('span', { class: 'chip ' + (b.side === 'buy' ? 'good' : 'warn'), text: b.side === 'buy' ? 'Buy' : 'Sell' })),
-            h('td', { class: 'sym', text: b.sym }),
-            h('td', { class: 'r num', text: fmt.group(b.qty, 0) }),
-            h('td', { class: 'r num', text: fmt.group(b.px * 100, 2) + 'p' }),
-            h('td', { class: 'r num', text: fmt.money(b.fees) }),
-            h('td', { class: 'r num', text: fmt.money(b.net, 0) })
+            h('td', { class: 'muted', text: 'Y' + b.year + ' W' + b.week }),
+            h('td', { class: 'num muted', text: fmt.timeSec(b.at) }),
+            h('td', {}, h('span', { class: 'chip ' + (b.amount >= 0 ? 'good' : ''), text: b.kind })),
+            h('td', { class: 'muted', text: b.text }),
+            h('td', { class: 'r' }, h('span', { class: 'delta ' + fmt.dir(b.amount) }, [
+              h('span', { class: 'arrow', text: fmt.arrow(b.amount), 'aria-hidden': 'true' }),
+              h('span', { text: fmt.signed(b.amount, 0) })
+            ]))
           ]);
         }))
       ]));

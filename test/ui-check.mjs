@@ -29,14 +29,14 @@ await page.waitForTimeout(500);
 // --- Keyboard navigation ---
 await page.keyboard.press('Control+4');
 await page.waitForTimeout(400);
-ok('Ctrl+4 opens Assets', await page.getAttribute('#tab-assets', 'aria-selected') === 'true');
+ok('Ctrl+4 opens Markets', await page.getAttribute('#tab-markets', 'aria-selected') === 'true');
 await page.keyboard.press('Control+1');
 await page.waitForTimeout(300);
 ok('Ctrl+1 returns to Overview', await page.getAttribute('#tab-overview', 'aria-selected') === 'true');
 await page.focus('#tab-overview');
 await page.keyboard.press('ArrowDown');
 await page.waitForTimeout(300);
-ok('ArrowDown moves to Correspondence', await page.getAttribute('#tab-mail', 'aria-selected') === 'true');
+ok('ArrowDown moves to the next panel', await page.getAttribute('#tab-empire', 'aria-selected') === 'true');
 
 // --- Ctrl+L locks ---
 await page.keyboard.press('Control+l');
@@ -58,8 +58,8 @@ await page.click('#win-max'); await page.waitForTimeout(250);
 await page.click('#tab-markets'); await page.waitForTimeout(600);
 const sellNothing = await page.evaluate(() => KH.market.deal('sell', 'NRTH', 500));
 ok('Selling stock you do not hold is refused', sellNothing.ok === false, sellNothing.reason);
-const tooBig = await page.evaluate(() => KH.market.deal('buy', 'QNTA', 99999999));
-ok('An order beyond the ticket limit is refused', tooBig.ok === false, tooBig.reason);
+const tooBig = await page.evaluate(() => KH.market.deal('buy', 'QNTA', 999999999));
+ok('An order beyond the shares in issue is refused', tooBig.ok === false, tooBig.reason);
 const noCash = await page.evaluate(() => KH.market.deal('buy', 'QNTA', 9000000));
 ok('An order beyond settled cash is refused', noCash.ok === false, noCash.reason);
 const zero = await page.evaluate(() => KH.market.deal('buy', 'QNTA', 0));
@@ -69,12 +69,12 @@ ok('A non-numeric quantity is refused', junk.ok === false, junk.reason);
 
 // --- Round trip: buy then sell everything ---
 const trip = await page.evaluate(() => {
-  const before = KH.store.get('trading').cash;
+  const before = KH.game.get().treasury.cash;
   const b = KH.market.deal('buy', 'STRL', 2000);
-  const held = KH.store.get('trading').positions.STRL.qty;
+  const held = KH.game.get().corps.STRL.shares;
   const s = KH.market.deal('sell', 'STRL', held);
-  const after = KH.store.get('trading').cash;
-  return { ok: b.ok && s.ok, before, after, stillHeld: !!KH.store.get('trading').positions.STRL };
+  const after = KH.game.get().treasury.cash;
+  return { ok: b.ok && s.ok, before, after, stillHeld: !!(KH.game.get().corps.STRL || {}).shares };
 });
 ok('Buy then sell closes the line', trip.ok && trip.stillHeld === false);
 ok('A round trip costs money (dealing costs)', trip.after < trip.before,
@@ -83,9 +83,9 @@ ok('A round trip costs money (dealing costs)', trip.after < trip.before,
 // --- The group capitalisation dial ---
 const wealth = await page.evaluate(() => {
   KH.app.applyWealth(15000, true);
-  const low = { register: KH.assets.total(), cash: KH.store.get('trading').cash };
+  const low = { register: KH.assets.total(), cash: KH.game.get().treasury.cash };
   KH.app.applyWealth(15000000, true);
-  const high = { register: KH.assets.total(), cash: KH.store.get('trading').cash };
+  const high = { register: KH.assets.total(), cash: KH.game.get().treasury.cash };
   return { low, high, stored: KH.store.get('workspace').netWorth };
 });
 ok('The dial rescales the asset register', wealth.high.register > wealth.low.register * 900,
@@ -125,7 +125,7 @@ await page.waitForSelector('#splash[hidden]', { state: 'attached', timeout: 1500
 await page.waitForTimeout(400);
 ok('Identity survives a reload', (await page.textContent('#id-name')) === 'Marjorie Pemberton-Wicks');
 ok('Accent survives a reload', (await page.getAttribute('html', 'data-accent')) === 'emerald');
-ok('Blotter survives a reload', (await page.evaluate(() => KH.store.get('trading').blotter.length)) >= 2);
+ok('The ledger survives a reload', (await page.evaluate(() => KH.game.get().ledger.length)) >= 2);
 ok('Capitalisation survives a reload', (await page.evaluate(() => KH.store.get('workspace').netWorth)) === 15000000);
 
 // --- Currency switch ---

@@ -136,6 +136,8 @@
         ]),
         h('span', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' } }, [
           unread ? h('span', { class: 'unread-dot', title: 'Unread' }) : null,
+          m.choices && m.choices.length && KH.game.get().inbox.handled[m.id] === undefined
+            ? h('span', { class: 'chip warn tiny', text: 'Reply' }) : null,
           m.attachments && m.attachments.length ? icon('attach', 'sub') : null,
           KH.app.isFlagged(m) ? icon('star', 'sub') : null
         ])
@@ -152,6 +154,71 @@
     renderList();
     renderReader(m);
     KH.bus.emit('mail:read');
+  }
+
+  /* ---------- Decisions ------------------------------------------------
+     A reply is a choice with a consequence: cash moves, standing moves,
+     and the answer that comes back depends on what you picked. The
+     decision is recorded on the saved game so it is taken once.
+     -------------------------------------------------------------------- */
+
+  function decisionFor(m) {
+    var handled = KH.game.get().inbox.handled;
+    return handled[m.id] === undefined ? null : m.choices[handled[m.id]];
+  }
+
+  function applyChoice(m, index) {
+    var choice = m.choices[index];
+    var g = KH.game.get();
+    var e = choice.effect || {};
+    if (e.cash) KH.game.post('correspondence', 'Arising from: ' + m.subject, e.cash);
+    if (e.reputation) g.standing.reputation = KH.util.clamp(g.standing.reputation + e.reputation, 0, 100);
+    if (e.scrutiny) g.standing.scrutiny = KH.util.clamp(g.standing.scrutiny + e.scrutiny, 0, 100);
+    if (e.prestige) g.standing.prestige = Math.max(0, g.standing.prestige + e.prestige);
+    g.inbox.handled[m.id] = index;
+    KH.game.save();
+
+    var bits = [];
+    if (e.cash) bits.push(KH.fmt.signed(e.cash, 0));
+    if (e.reputation) bits.push((e.reputation > 0 ? '+' : '') + e.reputation + ' reputation');
+    if (e.scrutiny) bits.push((e.scrutiny > 0 ? '+' : '') + e.scrutiny + ' scrutiny');
+    if (e.prestige) bits.push((e.prestige > 0 ? '+' : '') + e.prestige + ' prestige');
+
+    KH.game.headline('Replied: ' + m.subject, choice.label + (bits.length ? ' \u2014 ' + bits.join(', ') : ''),
+      (e.reputation || 0) >= 0 ? 'good' : 'bad');
+    KH.app.toast('Reply sent', bits.length ? bits.join(' \u00b7 ') : choice.label, 'check');
+    KH.app.refreshAll();
+    renderReader(m);
+  }
+
+  function decisionBlock(m) {
+    var taken = decisionFor(m);
+    if (taken) {
+      return h('div', { class: 'decision done' }, [
+        h('div', { class: 'decision-head' }, [icon('check'), h('b', { text: 'You replied' })]),
+        h('p', { class: 'decision-chosen', text: taken.label }),
+        h('div', { class: 'decision-reply' }, [
+          h('span', { class: 'avatar sm', style: { background: KH.people.get(m.from).color }, text: KH.people.get(m.from).initials, 'aria-hidden': 'true' }),
+          h('p', { text: taken.reply })
+        ])
+      ]);
+    }
+    return h('div', { class: 'decision' }, [
+      h('div', { class: 'decision-head' }, [icon('reply'), h('b', { text: 'Your response' }),
+        h('span', { class: 'chip warn', text: 'Consequential' })]),
+      h('div', { class: 'decision-options' }, m.choices.map(function (c, i) {
+        var e = c.effect || {};
+        return h('button', { class: 'decision-opt', type: 'button', onclick: function () { applyChoice(m, i); } }, [
+          h('span', { class: 'opt-label', text: c.label }),
+          h('span', { class: 'opt-effects' }, [
+            e.cash ? h('span', { class: 'badge-stat ' + (e.cash > 0 ? 'up' : 'down'), text: KH.fmt.signedShort(e.cash) }) : null,
+            e.reputation ? h('span', { class: 'badge-stat ' + (e.reputation > 0 ? 'up' : 'down'), text: (e.reputation > 0 ? '+' : '') + e.reputation + ' rep' }) : null,
+            e.scrutiny ? h('span', { class: 'badge-stat ' + (e.scrutiny > 0 ? 'down' : 'up'), text: (e.scrutiny > 0 ? '+' : '') + e.scrutiny + ' scrutiny' }) : null,
+            e.prestige ? h('span', { class: 'badge-stat up', text: '+' + e.prestige + ' prestige' }) : null
+          ])
+        ]);
+      }))
+    ]);
   }
 
   function renderReader(m) {
@@ -174,6 +241,7 @@
         ]);
       })) : null,
       m.body.map(function (para) { return h('p', { text: para }); }),
+      m.choices && m.choices.length ? decisionBlock(m) : null,
       m.sign ? h('p', { class: 'sig' }, m.sign.split('\n').map(function (line, i) {
         return i === 0 ? h('span', { text: line }) : [h('br'), h('span', { text: line })];
       })) : null
@@ -209,7 +277,10 @@
           onclick: function () { KH.app.toggleFlag(m); renderList(); renderReader(m); }
         }, [icon('star'), h('span', { text: KH.app.isFlagged(m) ? 'Unflag' : 'Flag' })]),
         h('div', { style: { flex: '1' } }),
-        h('button', { class: 'btn ghost', type: 'button', onclick: function () { KH.app.toast('Sent to printer', 'Queued to KH-EC2-PRINT-04.'); } }, [icon('print'), h('span', { text: 'Print' })]),
+        h('button', {
+          class: 'btn ghost', type: 'button',
+          onclick: function () { KH.reports.letter(m); KH.app.toast('Exported', 'Saved as a PDF to your downloads.', 'check'); }
+        }, [icon('print'), h('span', { text: 'Export PDF' })]),
         h('button', {
           class: 'btn ghost', type: 'button',
           onclick: function () {

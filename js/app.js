@@ -8,7 +8,7 @@
 
   var h = KH.dom.h, $ = KH.dom.$, icon = KH.dom.icon, fmt = KH.fmt;
 
-  var ORDER = ['overview', 'mail', 'messages', 'assets', 'markets', 'settings'];
+  var ORDER = ['overview', 'empire', 'property', 'markets', 'lifestyle', 'assets', 'mail', 'messages', 'advisor', 'settings'];
   var mounted = {};
   var currentView = null;
   var navButtons = {};
@@ -35,12 +35,23 @@
     var before = KH.assets.scale();
     var after = factorFor(net);
     KH.assets.setScale(after);
+    if (before > 0 && KH.sim.rescaleMarket) KH.sim.rescaleMarket(after / before);
     if (moveAccount && before > 0) {
-      var t = KH.store.get('trading');
+      var t = KH.game.get().treasury;
       var ratio = after / before;
       t.cash = Math.round(t.cash * ratio * 100) / 100;
-      t.startingCash = Math.round(t.startingCash * ratio * 100) / 100;
-      KH.store.save();
+      t.opening = Math.round(t.opening * ratio * 100) / 100;
+      t.debt = Math.round(t.debt * ratio * 100) / 100;
+      KH.game.get().props.forEach(function (pr) {
+        pr.value = Math.round(pr.value * ratio);
+        pr.paid = Math.round(pr.paid * ratio);
+        pr.rent = Math.round(pr.rent * ratio);
+      });
+      KH.game.get().lifestyle.forEach(function (l) {
+        l.value = Math.round(l.value * ratio);
+        l.paid = Math.round(l.paid * ratio);
+      });
+      KH.game.save();
     }
     KH.store.set('workspace', { netWorth: net });
   }
@@ -233,13 +244,15 @@
   }
 
   function updateMiniStat() {
-    var p = KH.market.portfolio();
-    var net = KH.assets.total() + p.total;
-    $('#mini-net').textContent = fmt.moneyShort(net);
-    var d = p.sinceStart;
+    var w = KH.sim.netWorth();
+    var g = KH.game.get();
+    $('#mini-net').textContent = fmt.moneyShort(w.total);
+    var d = w.total - g.treasury.opening;
+    var wk = $('#mini-week');
+    if (wk) wk.textContent = 'Week ' + g.clock.week + ' \u00b7 Year ' + g.clock.year;
     KH.dom.fill($('#mini-delta'), h('span', { class: 'delta ' + fmt.dir(d), style: { fontSize: 'var(--type-meta)' } }, [
       h('span', { class: 'arrow', text: fmt.arrow(d), 'aria-hidden': 'true' }),
-      h('span', { text: fmt.signed(d, 0) + ' on the account' })
+      h('span', { text: fmt.signedShort(d) + ' since start' })
     ]));
   }
 
@@ -320,7 +333,7 @@
       h('div', { class: 't-body' }, [h('b', { text: title }), detail ? h('span', { text: detail }) : null])
     ]);
     host.appendChild(node);
-    while (host.children.length > 4) host.removeChild(host.firstChild);
+    while (host.children.length > 2) host.removeChild(host.firstChild);
     setTimeout(function () {
       node.classList.add('out');
       setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 400);
@@ -358,10 +371,15 @@
       if (ev.key === 'Escape' && document.body.classList.contains('minimised')) {
         document.body.classList.remove('minimised');
       }
-      if ((ev.ctrlKey || ev.metaKey) && ev.key >= '1' && ev.key <= String(ORDER.length)) {
-        ev.preventDefault();
-        go(ORDER[Number(ev.key) - 1]);
-        navButtons[ORDER[Number(ev.key) - 1]].focus();
+      // 1-9 select the first nine panels and 0 selects the tenth. A string
+      // comparison would read '4' as greater than '10' once there were ten.
+      if ((ev.ctrlKey || ev.metaKey) && /^[0-9]$/.test(ev.key)) {
+        var index = ev.key === '0' ? 9 : Number(ev.key) - 1;
+        if (index < ORDER.length) {
+          ev.preventDefault();
+          go(ORDER[index]);
+          navButtons[ORDER[index]].focus();
+        }
       }
       if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'l') { ev.preventDefault(); lock(); }
     });
@@ -379,6 +397,65 @@
     $('#lock').hidden = true;
     $('#shell').classList.remove('is-hidden');
     if (currentView && navButtons[currentView]) navButtons[currentView].focus();
+  }
+
+  /* ============================================================
+     The floor: state support rather than a game over
+     ============================================================ */
+
+  var bailoutOpen = false;
+
+  function offerBailout(offer) {
+    if (bailoutOpen) return;
+    bailoutOpen = true;
+    KH.sound.play('alert');
+
+    var host = $('#modal');
+    host.hidden = false;
+    KH.dom.fill(host, h('div', { class: 'modal-card glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Treasury stabilisation facility' }, [
+      h('div', { class: 'modal-head' }, [
+        icon('shield'),
+        h('div', {}, [
+          h('b', { text: 'Treasury stabilisation facility' }),
+          h('span', { text: 'Round ' + offer.round + ' \u00b7 HM Treasury, Corporate Resilience Unit' })
+        ])
+      ]),
+      h('div', { class: 'modal-body' }, [
+        h('p', { text: 'The group has gone below zero. A company of this size will not be allowed to fail, and the Treasury has put terms on the table. They are not generous, and each round is worse than the last \u2014 but you remain in post, and there is no version of this where you lose.' }),
+        h('dl', { class: 'kv modal-kv' }, [
+          h('dt', { text: 'Facility offered' }), h('dd', { text: fmt.money(offer.amount, 0) }),
+          h('dt', { text: 'Equity taken by the state' }), h('dd', { text: (offer.equity * 100).toFixed(0) + '%' }),
+          h('dt', { text: 'Interest' }), h('dd', { text: (offer.rate * 100).toFixed(1) + '% per annum' }),
+          h('dt', { text: 'Reputation cost' }), h('dd', { text: '-' + offer.reputation + ' points' }),
+          h('dt', { text: 'Additional scrutiny' }), h('dd', { text: '+' + offer.scrutiny + ' points' }),
+          h('dt', { text: 'Oversight period' }), h('dd', { text: offer.oversightWeeks + ' weeks' })
+        ])
+      ]),
+      h('div', { class: 'modal-actions' }, [
+        h('button', {
+          class: 'btn', type: 'button', text: 'Decline and trade on',
+          onclick: function () {
+            close();
+            toast('Facility declined', 'You are trading while overdrawn. The offer will come back, on worse terms.', 'alert');
+          }
+        }),
+        h('button', {
+          class: 'btn primary', type: 'button', text: 'Accept ' + fmt.moneyShort(offer.amount),
+          onclick: function () {
+            KH.sim.takeBailout();
+            close();
+            toast('State support drawn', fmt.money(offer.amount, 0) + ' received. The Treasury is now a shareholder.', 'money');
+            refreshAll();
+          }
+        })
+      ])
+    ]));
+
+    function close() {
+      host.hidden = true;
+      KH.dom.clear(host);
+      bailoutOpen = false;
+    }
   }
 
   /* ============================================================
@@ -420,6 +497,7 @@
     applyIdentity();
 
     KH.market.init();
+    KH.assets.setScale(factorFor(KH.store.get('workspace').netWorth));
 
     buildNav();
     wireChrome();
@@ -435,6 +513,24 @@
       }
     });
 
+    KH.bus.on('sim:week', function (p) {
+      updateMiniStat();
+      updateBadges();
+      if (p.manual) return;
+      var v = KH.views[currentView];
+      if (v && v.refresh) { try { v.refresh(); } catch (err) { console.error(err); } }
+    });
+    KH.bus.on('sim:insolvent', offerBailout);
+    KH.bus.on('sim:scandal', function (p) {
+      toast('Whistleblower at ' + p.sym, p.exec + ' \u2014 ' + fmt.money(p.amount, 0) + ' unaccounted for.', 'alert');
+    });
+    // The news feed on Command is the record; only the things that need a
+    // decision interrupt. A wall of notices is worse than none.
+    KH.bus.on('game:news', function (n) {
+      if (!KH.store.get('workspace').notifications) return;
+      if (!/whistleblower|audit at|state support|control acquired|works paused|delay at/i.test(n.head)) return;
+      toast(n.head, n.body, n.tone === 'bad' ? 'alert' : 'info');
+    });
     KH.bus.on('chat:incoming', updateBadges);
     KH.bus.on('chat:read', updateBadges);
     KH.bus.on('mail:read', updateBadges);
@@ -470,6 +566,7 @@
       $('#shell').classList.remove('is-hidden');
       setTimeout(function () { splash.hidden = true; }, 500);
       KH.market.start();
+      KH.clock.start();
       KH.sound.playWhenAllowed('startup');
       KH.store.set('session', { firstRun: false, lastOpened: Date.now() });
       if (KH.store.get('workspace').notifications) {
@@ -484,7 +581,7 @@
 
   KH.app = {
     go: go, toast: toast, refreshAll: refreshAll, applyAppearance: applyAppearance,
-    applyWealth: applyWealth, factorFor: factorFor,
+    applyWealth: applyWealth, factorFor: factorFor, offerBailout: offerBailout,
     wealthRange: { min: MIN_NET, max: MAX_NET },
     isUnread: isUnread, isFlagged: isFlagged, isDeleted: isDeleted,
     markRead: markRead, toggleFlag: toggleFlag, deleteMessage: deleteMessage,
