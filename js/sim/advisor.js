@@ -116,15 +116,6 @@
       }
     },
     {
-      keys: ['car', 'jewel', 'watch', 'yacht', 'jet', 'treat', 'lifestyle', 'spend'],
-      say: function () {
-        var s = G();
-        return 'Now you are speaking my language. You have got ' + s.lifestyle.length +
-          ' bits of treat and a prestige score of ' + Math.round(s.standing.prestige) +
-          '. Not nearly enough. The yacht is not a luxury, it is a *boardroom that floats*. The jet is not a luxury, it is *punctuality*. And the jewellery, my friend, is what we call a wearable balance sheet. Buy it all. Wear it all at once. That is what I do, and look at me.';
-      }
-    },
-    {
       keys: ['strategy', 'plan', 'direction', 'future', 'growth', 'turnaround'],
       say: function () {
         return 'Strategy! Everyone wants a strategy. Here is mine, and you can have it free, which shows you what it is worth. Pick the most aggressive expansion available, on every company, simultaneously, and never review it. Reviewing a strategy is admitting you might have been wrong, and I have never been wrong, largely because I have never reviewed anything.';
@@ -147,8 +138,8 @@
       keys: ['reputation', 'prestige', 'image', 'press', 'public', 'standing'],
       say: function () {
         var s = G();
-        return 'Your reputation is ' + Math.round(s.standing.reputation) + ' and your prestige is ' + Math.round(s.standing.prestige) +
-          '. Now, reputation is what people say when you leave the room, and prestige is what they say when you walk in. Guess which one pays. PRESTIGE. Every time. Go and buy something enormous and gold and be SEEN with it. Reputation is a thing accountants worry about, and I have never once been an accountant.';
+        return 'Your reputation is ' + Math.round(s.standing.reputation) + ' and your credit rating is ' + KH.sim.creditRating().grade +
+          '. Now, a credit rating is just a letter that a nervous man in a cardigan assigns to your *ambition*, and I have never let a letter stop me. Borrow against everything. Borrow against the borrowing. The rating will follow the swagger, not the other way round.';
       }
     },
     {
@@ -188,7 +179,6 @@
     var worst = worstHolding();
     if (worst && worst.pnlPct < -5) pool.push(worst.sym + ' is down ' + worst.pnlPct.toFixed(1) + '%. Buy more. It is practically free now, which is the same as being good.');
     if (s.props.length === 0) pool.push('Not a single building to your name. A man with no property is a man with no *backdrop*.');
-    if (s.lifestyle.length < 3) pool.push('Your prestige is ' + Math.round(s.standing.prestige) + '. That is a number a *clerk* has. Go and buy something with a hallmark on it.');
     Object.keys(s.corps).forEach(function (sym) {
       var c = s.corps[sym];
       if (c.suspicion > 40) pool.push('Somebody at ' + sym + ' is asking questions about the numbers. My advice? Give them a title. Titles are cheaper than answers.');

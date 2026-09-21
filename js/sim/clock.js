@@ -265,14 +265,6 @@
       p.value = Math.round(p.value * (1 + (0.0009 + (p.condition - 50) * 0.000012) + (Math.random() - 0.5) * 0.002));
     });
 
-    // --- Toys ---
-    s.lifestyle.forEach(function (item) {
-      var def = KH.simdata.lifestyle.filter(function (l) { return l.id === item.id; })[0];
-      if (!def) return;
-      if (def.appreciation <= -1) { item.value = 0; return; }
-      item.value = Math.max(0, Math.round(item.value * (1 + def.appreciation / 52)));
-    });
-
     // --- Financing ---
     if (s.treasury.debt > 0) {
       var rate = s.treasury.bailouts.length ? s.treasury.bailouts[s.treasury.bailouts.length - 1].rate : 0.06;

@@ -174,7 +174,6 @@
     if (e.cash) KH.game.post('correspondence', 'Arising from: ' + m.subject, e.cash);
     if (e.reputation) g.standing.reputation = KH.util.clamp(g.standing.reputation + e.reputation, 0, 100);
     if (e.scrutiny) g.standing.scrutiny = KH.util.clamp(g.standing.scrutiny + e.scrutiny, 0, 100);
-    if (e.prestige) g.standing.prestige = Math.max(0, g.standing.prestige + e.prestige);
     g.inbox.handled[m.id] = index;
     KH.game.save();
 
@@ -182,7 +181,6 @@
     if (e.cash) bits.push(KH.fmt.signed(e.cash, 0));
     if (e.reputation) bits.push((e.reputation > 0 ? '+' : '') + e.reputation + ' reputation');
     if (e.scrutiny) bits.push((e.scrutiny > 0 ? '+' : '') + e.scrutiny + ' scrutiny');
-    if (e.prestige) bits.push((e.prestige > 0 ? '+' : '') + e.prestige + ' prestige');
 
     KH.game.headline('Replied: ' + m.subject, choice.label + (bits.length ? ' \u2014 ' + bits.join(', ') : ''),
       (e.reputation || 0) >= 0 ? 'good' : 'bad');
@@ -213,8 +211,7 @@
           h('span', { class: 'opt-effects' }, [
             e.cash ? h('span', { class: 'badge-stat ' + (e.cash > 0 ? 'up' : 'down'), text: KH.fmt.signedShort(e.cash) }) : null,
             e.reputation ? h('span', { class: 'badge-stat ' + (e.reputation > 0 ? 'up' : 'down'), text: (e.reputation > 0 ? '+' : '') + e.reputation + ' rep' }) : null,
-            e.scrutiny ? h('span', { class: 'badge-stat ' + (e.scrutiny > 0 ? 'down' : 'up'), text: (e.scrutiny > 0 ? '+' : '') + e.scrutiny + ' scrutiny' }) : null,
-            e.prestige ? h('span', { class: 'badge-stat up', text: '+' + e.prestige + ' prestige' }) : null
+            e.scrutiny ? h('span', { class: 'badge-stat ' + (e.scrutiny > 0 ? 'down' : 'up'), text: (e.scrutiny > 0 ? '+' : '') + e.scrutiny + ' scrutiny' }) : null
           ])
         ]);
       }))

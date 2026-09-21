@@ -241,7 +241,7 @@
 
   KH.views = KH.views || {};
   KH.views.assets = {
-    id: 'assets', label: 'Assets', icon: 'briefcase',
+    id: 'assets', label: 'Register', icon: 'briefcase',
     mount: mount,
     activate: refresh,
     refresh: refresh

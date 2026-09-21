@@ -18,10 +18,12 @@
   var SESSIONS = 90;
   var INTRADAY = 150;
 
+  /* Slower and smaller than it was. Fifty-two lines all moving twice a
+     second reads as noise, not as a market. */
   var SPEEDS = {
-    calm: { interval: 3000, scale: 0.5 },
-    normal: { interval: 1600, scale: 1 },
-    brisk: { interval: 800, scale: 1.7 }
+    calm: { interval: 4500, scale: 0.45 },
+    normal: { interval: 2600, scale: 0.8 },
+    brisk: { interval: 1400, scale: 1.3 }
   };
 
   var state = { running: false, timer: null, speed: 'normal' };
@@ -107,7 +109,7 @@
 
   /** A walk around the anchor, pulled gently back toward it. */
   function step(inst, scale, damp) {
-    var sigma = inst.vol * scale * damp * 0.09;
+    var sigma = inst.vol * scale * damp * 0.06;
     var before = inst.px;
     var pull = inst.anchor ? (inst.anchor - inst.px) * 0.035 : 0;
     inst.px = Math.max(0.5, inst.px * Math.exp(-(sigma * sigma) / 2 + sigma * (Math.random() * 2 - 1) * 1.7) + pull);

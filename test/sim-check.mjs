@@ -131,12 +131,33 @@ const finished = await page.evaluate((id) => {
 ok('Works complete and improve the asset', finished.works === 0 && finished.cond > prop.cond,
    `condition ${Math.round(prop.cond)} → ${Math.round(finished.cond)}`);
 
-/* ---------- Lifestyle ---------- */
-ok('A lifestyle purchase lands and raises prestige', await page.evaluate(() => {
-  const before = KH.game.get().standing.prestige;
-  const item = KH.simdata.lifestyle.find(i => KH.sim.lifestylePrice(i) < KH.game.get().treasury.cash / 4);
-  const res = KH.sim.buyLifestyle(item.id);
-  return res.ok && KH.game.get().standing.prestige > before;
+/* ---------- Credit rating ---------- */
+const credit = await page.evaluate(() => {
+  const clean = KH.sim.creditRating();
+  KH.game.get().treasury.debt = KH.sim.netWorth().total * 0.8;
+  const geared = KH.sim.creditRating();
+  KH.game.get().treasury.debt = 0;
+  return { clean, geared };
+});
+ok('A credit rating is graded', /^(AAA|AA|A|BBB|BB|B|CCC|D)$/.test(credit.clean.grade), credit.clean.grade + ' ' + credit.clean.score);
+ok('Gearing downgrades the rating', credit.geared.score < credit.clean.score,
+   `${credit.clean.score} \u2192 ${credit.geared.score}`);
+
+/* ---------- The operating plan ---------- */
+const plan = await page.evaluate(() => {
+  const p = KH.flow.progress();
+  return { total: p.total, done: p.done, next: p.stages.find(s => !s.done), issues: KH.flow.issues().length };
+});
+ok('The plan has stages and knows which are done', plan.total === 11 && plan.done > 0, `${plan.done}/${plan.total} done`);
+ok('The plan names the next step and where to do it', !!plan.next && !!plan.next.panel, plan.next ? plan.next.label : 'all complete');
+ok('Matters arising are computed', plan.issues >= 0, plan.issues + ' items');
+ok('Completed stages stay completed', await page.evaluate(() => {
+  const before = KH.flow.progress().done;
+  const held = {};
+  Object.keys(KH.game.get().corps).forEach(s => { held[s] = KH.game.get().corps[s].shares; KH.game.get().corps[s].shares = 0; });
+  const after = KH.flow.progress().done;
+  Object.keys(held).forEach(s => { KH.game.get().corps[s].shares = held[s]; });
+  return after >= before;
 }));
 
 /* ---------- The bailout floor ---------- */
@@ -163,6 +184,7 @@ const mike = await page.evaluate(() => ({
   fraud: KH.mike.ask('is anyone embezelling'),
   apple: KH.mike.ask('should we buy an iphone for every employee'),
   berry: KH.mike.ask('what did you think of the blackberry bold'),
+  berryMany: Array.from({ length: 12 }, () => KH.mike.ask('tell me about blackberry')).every(t => !/^No\./.test(t)),
   storm: KH.mike.ask('tell me about the storm'),
   china: KH.mike.ask('should we outsource manufacturing to china'),
   unknown: KH.mike.ask('wibble wobble flange')
@@ -171,8 +193,8 @@ ok('Mike gives a real briefing', /Week \d+/.test(mike.brief) && mike.brief.lengt
 ok('Mike tolerates typos', /renovat|works|condition/i.test(mike.typo), mike.typo.slice(0, 70));
 ok('Mike prices control exactly', /shares/.test(mike.control) && /%/.test(mike.control));
 ok('Mike answers on governance', /suspicion|audit|flagged/i.test(mike.fraud));
-ok('Mike loses his temper about Apple', /^No\./.test(mike.apple) && /glass|battery|keyboard/i.test(mike.apple));
-ok('Mike lights up about BlackBerry', /keyboard|battery|compression|BBM/i.test(mike.berry) && !/^No\./.test(mike.berry));
+ok('Mike loses his temper about Apple', /^No\./.test(mike.apple) && /glass/i.test(mike.apple));
+ok('Mike lights up about BlackBerry', /keyboard|battery|compression|BBM|encryption|secure/i.test(mike.berry) && mike.berryMany);
 ok('The Storm still stings', /ready|returns|door|glass/i.test(mike.storm));
 ok('Mike refuses to recommend offshoring', /build it here|outsourc|offshor/i.test(mike.china) && /will not/i.test(mike.china));
 ok('Mike falls back gracefully', mike.unknown.length > 80);
@@ -210,12 +232,19 @@ ok('PA: controls time', pa.paced === 'paused');
 ok('PA: obeys but objects to cost-cutting', /on the record/i.test(pa.grumble));
 
 /* ---------- Jimmy ---------- */
-const jimmy = await page.evaluate(() => ({
-  open: KH.jimmy.ask('what should I do with my cash'),
-  jvis: KH.jimmy.ask('is jimmyvision a good investment'),
-  nudge: KH.jimmy.nudge()
-}));
-ok('Jimmy opens with now then', /^Now then|Ooh|Howzabout|Right\.|Well hello|Goodness/.test(jimmy.open), jimmy.open.slice(0, 40));
+const jimmy = await page.evaluate(() => {
+  // Every configured opener, so the check does not drift when one is added.
+  const ten = Array.from({ length: 24 }, () => KH.jimmy.ask('what should I do with my cash'));
+  return {
+    open: ten[0],
+    allOpen: ten.every(t => KH.simdata.jimmyOpeners.some(o => t.startsWith(o))),
+    nowThen: ten.some(t => /^Now then/.test(t)),
+    jvis: KH.jimmy.ask('is jimmyvision a good investment'),
+    nudge: KH.jimmy.nudge()
+  };
+});
+ok('Jimmy always opens in character', jimmy.allOpen, jimmy.open.slice(0, 44));
+ok('Jimmy reaches for "now then"', jimmy.nowThen);
 ok('Jimmy quotes live figures', /£[\d,]/.test(jimmy.open) || /£[\d,]/.test(jimmy.jvis));
 ok('Jimmy pushes JimmyVision', /JimmyVision|JVIS/i.test(jimmy.jvis));
 ok('Jimmy has unprompted opinions', jimmy.nudge.length > 20);

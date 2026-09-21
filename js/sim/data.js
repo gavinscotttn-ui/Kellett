@@ -126,31 +126,6 @@
     { id: 'green', label: 'Energy retrofit to EPC B', base: 0.075, weeks: 9, condition: 18, value: 0.09, blurb: 'Compulsory eventually. Cheaper now than then.' }
   ];
 
-  /* ---------- Lifestyle. None of it is an investment. Two of them are. ---------- */
-
-  var LIFESTYLE = [
-    { id: 'l-watch1', label: 'Steel chronograph, 41mm', cat: 'Timepieces', price: 9800, prestige: 3, appreciation: 0.04, blurb: 'The one you wear to be underestimated.' },
-    { id: 'l-watch2', label: 'Platinum perpetual calendar', cat: 'Timepieces', price: 168000, prestige: 14, appreciation: 0.09, blurb: 'Tells the date until 2100 and the room everything now.' },
-    { id: 'l-suit', label: 'Bespoke, Savile Row, six fittings', cat: 'Wardrobe', price: 7400, prestige: 5, appreciation: -0.30, blurb: 'Peak lapel. The notch is for men who have given up.' },
-    { id: 'l-ring', label: 'Cushion-cut, 6.2 carats', cat: 'Jewellery', price: 412000, prestige: 18, appreciation: 0.07, blurb: 'Insured separately. Kept in Geneva.' },
-    { id: 'l-neck', label: 'Burmese ruby collar', cat: 'Jewellery', price: 890000, prestige: 26, appreciation: 0.08, blurb: 'Unheated, certificated, and quietly obscene.' },
-    { id: 'l-car1', label: 'Restomod Mk2, 2.8 injection', cat: 'Motoring', price: 128000, prestige: 8, appreciation: 0.06, blurb: 'Brown. Correctly brown.' },
-    { id: 'l-car2', label: 'V12 grand tourer', cat: 'Motoring', price: 340000, prestige: 16, appreciation: -0.11, blurb: 'Depreciates like a wet firework. Worth every penny.' },
-    { id: 'l-car3', label: '1962 Ashton DB-Series Zagato', cat: 'Motoring', price: 12860000, prestige: 44, appreciation: 0.11, blurb: 'One of nineteen. An asset that happens to have pedals.' },
-    { id: 'l-car4', label: 'Three-wheeled yellow van', cat: 'Motoring', price: 4200, prestige: -2, appreciation: 0.34, blurb: 'Absurdly, the best return in this catalogue.' },
-    { id: 'l-boat', label: '52m tri-deck motor yacht', cat: 'Marine', price: 41200000, prestige: 58, appreciation: -0.04, blurb: 'Crew of eleven. Berthed where people can see it.' },
-    { id: 'l-jet', label: 'Hawker 4000, managed charter', cat: 'Aviation', price: 18420000, prestige: 47, appreciation: -0.05, blurb: 'Farnborough in forty minutes. Every time.' },
-    { id: 'l-heli', label: 'Twin-engine helicopter', cat: 'Aviation', price: 6900000, prestige: 29, appreciation: -0.06, blurb: 'For the estate. Seats one, reportedly.' },
-    { id: 'l-art1', label: 'Post-war canvas, signed', cat: 'Art', price: 1850000, prestige: 22, appreciation: 0.10, blurb: 'Bought at auction. Sold at a better one.' },
-    { id: 'l-art2', label: 'The Ashcombe Collection, 31 lots', cat: 'Art', price: 29450000, prestige: 61, appreciation: 0.09, blurb: 'Geneva Freeport. Never hung, never seen, always appreciating.' },
-    { id: 'l-wine', label: 'Bonded cellar, 900 cases', cat: 'Cellar', price: 740000, prestige: 12, appreciation: 0.08, blurb: 'In bond. Drinking it would be a capital loss.' },
-    { id: 'l-club', label: 'Founding membership, St James’s', cat: 'Membership', price: 95000, prestige: 19, appreciation: 0.00, blurb: 'No telephones, no laptops, no explaining yourself.' },
-    { id: 'l-box', label: 'Hospitality box, full season', cat: 'Membership', price: 410000, prestige: 15, appreciation: -1.00, blurb: 'Half the guest list could not find your head office.' },
-    { id: 'l-island', label: 'Private island, Grenadines', cat: 'Property', price: 34000000, prestige: 72, appreciation: 0.07, blurb: 'Eleven hectares, one jetty, no postcode.' },
-    { id: 'l-horse', label: 'Racing syndicate, 40% share', cat: 'Sport', price: 620000, prestige: 17, appreciation: -0.14, blurb: 'It has never won. It looks magnificent losing.' },
-    { id: 'l-chef', label: 'Private chef, retained', cat: 'Household', price: 185000, prestige: 11, appreciation: -1.00, blurb: 'Shouts. Worth it. Ask about the lamb sauce.' }
-  ];
-
   /* ---------- Weekly news. Some of it is your fault. ---------- */
 
   var EVENTS = [
@@ -207,7 +182,6 @@
     propertyMarket: PROPERTY_MARKET,
     builders: BUILDERS,
     works: WORKS,
-    lifestyle: LIFESTYLE,
     events: EVENTS,
     jimmyOpeners: JIMMY_OPENERS,
     jimmyClosers: JIMMY_CLOSERS

@@ -51,7 +51,7 @@
     d.kv([
       ['Asset register', fmt.money(w.register, 0)],
       ['Property book', fmt.money(w.property, 0)],
-      ['Personal assets', fmt.money(w.toys, 0)],
+      ['Credit rating', KH.sim.creditRating().grade],
       ['Peak net worth', fmt.money(g.stats.peakNetWorth, 0)]
     ], 4);
 
@@ -59,7 +59,7 @@
     d.kv([
       ['Reputation', Math.round(g.standing.reputation) + ' / 100'],
       ['Regulatory scrutiny', Math.round(g.standing.scrutiny) + ' / 100'],
-      ['Prestige', String(Math.round(g.standing.prestige))],
+      ['Credit assessment', KH.sim.creditRating().note],
       ['Weeks in post', String(g.stats.weeksRun)]
     ], 4);
 

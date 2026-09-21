@@ -470,38 +470,6 @@
   }
 
   /* ============================================================
-     Lifestyle
-     ============================================================ */
-
-  function buyLifestyle(id) {
-    var item = KH.simdata.lifestyle.filter(function (l) { return l.id === id; })[0];
-    if (!item) return { ok: false, reason: 'No such item.' };
-    var s = G();
-    var price = Math.round(item.price * scaleOf() * 6.2);
-    if (s.treasury.cash < price) return { ok: false, reason: 'That is ' + KH.fmt.money(price, 0) + ' and you have ' + KH.fmt.money(s.treasury.cash, 0) + '.' };
-    KH.game.post('lifestyle', item.label, -price);
-    s.lifestyle.push({ id: id, label: item.label, cat: item.cat, paid: price, value: price, week: s.clock.week });
-    s.standing.prestige += item.prestige;
-    KH.game.headline('Acquired: ' + item.label,
-      KH.fmt.money(price, 0) + '. ' + item.blurb, 'good');
-    KH.bus.emit('sim:lifestyle');
-    return { ok: true, price: price };
-  }
-
-  function sellLifestyle(index) {
-    var s = G();
-    var owned = s.lifestyle[index];
-    if (!owned) return { ok: false, reason: 'Nothing to sell.' };
-    var item = KH.simdata.lifestyle.filter(function (l) { return l.id === owned.id; })[0];
-    var net = Math.round(owned.value * 0.92);
-    KH.game.post('lifestyle', 'Sold — ' + owned.label, net);
-    s.standing.prestige = Math.max(0, s.standing.prestige - (item ? item.prestige : 0));
-    s.lifestyle.splice(index, 1);
-    KH.bus.emit('sim:lifestyle');
-    return { ok: true, net: net };
-  }
-
-  /* ============================================================
      The treasury, and the thing that stops it ever being over
      ============================================================ */
 
@@ -513,13 +481,44 @@
       if (inst) equity += (inst.px / 100) * s.corps[sym].shares;
     });
     var property = KH.util.sum(s.props, function (p) { return p.value; });
-    var toys = KH.util.sum(s.lifestyle, function (l) { return l.value; });
     var register = KH.assets.total();
     return {
-      cash: s.treasury.cash, equity: equity, property: property, toys: toys,
+      cash: s.treasury.cash, equity: equity, property: property,
       register: register, debt: s.treasury.debt,
-      total: s.treasury.cash + equity + property + toys + register - s.treasury.debt
+      total: s.treasury.cash + equity + property + register - s.treasury.debt
     };
+  }
+
+  var GRADES = [
+    { min: 92, grade: 'AAA', note: 'Prime' },
+    { min: 84, grade: 'AA', note: 'High grade' },
+    { min: 74, grade: 'A', note: 'Upper medium' },
+    { min: 62, grade: 'BBB', note: 'Lower medium' },
+    { min: 48, grade: 'BB', note: 'Speculative' },
+    { min: 34, grade: 'B', note: 'Highly speculative' },
+    { min: 18, grade: 'CCC', note: 'Substantial risk' },
+    { min: 0, grade: 'D', note: 'In default' }
+  ];
+
+  /** Gearing, liquidity, earnings quality and reputation, resolved into the
+      one letter a lender would actually quote you. */
+  function creditRating() {
+    var s = G();
+    var w = netWorth();
+    var gearing = w.total > 0 ? s.treasury.debt / Math.max(1, w.total + s.treasury.debt) : 1;
+    var flow = KH.mike ? KH.mike.weeklyFlow().net : 0;
+    var cover = flow >= 0 ? 1 : KH.util.clamp(s.treasury.cash / Math.max(1, Math.abs(flow) * 26), 0, 1);
+
+    var score = 100
+      - gearing * 46
+      - (1 - cover) * 30
+      + (s.standing.reputation - 50) * 0.34
+      - s.standing.scrutiny * 0.16
+      + (s.treasury.cash > 0 ? 4 : -18);
+
+    score = KH.util.clamp(score, 0, 100);
+    var band = GRADES.filter(function (gr) { return score >= gr.min; })[0];
+    return { score: Math.round(score), grade: band.grade, note: band.note, gearing: gearing };
   }
 
   /** The state will not let a company of this size fail. It will,
@@ -586,8 +585,7 @@
     listingFor: listingFor, askingPrice: askingPrice, marketRent: marketRent,
     buyProperty: buyProperty, sellProperty: sellProperty,
     requestQuotes: requestQuotes, acceptQuote: acceptQuote, setRent: setRent,
-    buyLifestyle: buyLifestyle, sellLifestyle: sellLifestyle, lifestylePrice: function (i) { return Math.round(i.price * scaleOf() * 6.2); },
-    netWorth: netWorth, bailoutOffer: bailoutOffer, takeBailout: takeBailout, repayDebt: repayDebt,
+    netWorth: netWorth, creditRating: creditRating, bailoutOffer: bailoutOffer, takeBailout: takeBailout, repayDebt: repayDebt,
     CONTROL: CONTROL, BOARD: BOARD, PAYOUT: PAYOUT
   };
 })(window.KH);

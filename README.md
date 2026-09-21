@@ -29,6 +29,21 @@ instead, open `index.html`, keeping `css/`, `js/` and `assets/` beside it.
 
 ## The game
 
+### The plan
+
+The first panel answers three questions before anything else: where the group
+stands, what is wrong with it, and what to do next.
+
+**Operating plan** is an eleven-stage progression from opening a first position to
+trading at a profit, each stage with a plain description and a button that takes you
+to the panel it happens on. It completes itself as you play; nothing pops up and
+nothing has to be dismissed.
+
+**Matters arising** is the opposite: what is on fire right now, ranked by how
+expensive it is to keep ignoring — an overdraft, a chief executive whose suspicion
+index is climbing, a property that has been void for two months, a controlled
+company you are funding every week.
+
 ### Buy a company, then run it
 
 The exchange is not decoration and the companies on it are not scenery. Fifty-two
@@ -44,9 +59,22 @@ company and the price follows, a month or so later. That lag is the whole game.
 | 25% | A board seat — appoint a chief executive, commission marketing |
 | 50% | Control — strategy, pricing, specification and the payroll. **And you fund the losses.** |
 
-Every company carries a **turnaround score** out of 100, blending margin, risk,
-morale and scale, so you can see at a glance how hard a rescue would be. One
-company on the board scores zero and always will.
+Every company is graded on its condition the way a credit committee would grade it
+— **AAA down to D** — from margin, risk, morale and scale, so you can see at a
+glance how hard a rescue would be. One company on the board is rated D and always
+will be.
+
+The group itself carries a **credit rating** on the same scale, derived from
+gearing, interest cover, reputation and scrutiny.
+
+### Working the market
+
+The exchange is a **screener**, not a wall of flashing numbers. Fifty-two lines
+with the figures you would actually screen on — capitalisation, operating margin,
+condition grade, your stake, and what it would cost to take control — every column
+sortable, with a sector filter and four presets: my holdings, affordable, control in
+reach, and turnaround candidates. Prices update in place and a row only flashes on a
+move worth noticing.
 
 ### Run it properly
 
@@ -76,18 +104,16 @@ property while they are on site, so the rent stops before the value arrives. The
 cheapest quote is cheap because they will not turn up, and every missed week is
 another week of nothing coming in.
 
-### Wealth, and the floor under everything
+### The floor under everything
 
-Twenty things to buy for yourself, from a steel chronograph to a private island.
-Some appreciate, most do not, and two are written to zero the moment you sign. All
-of them raise prestige, which is its own reward and not a financial one.
-
-And there is **no game over**. Go below zero and HM Treasury puts terms on the
+There is **no game over**. Go below zero and HM Treasury puts terms on the
 table: enough to clear the hole, in exchange for equity, interest, reputation and a
 period of oversight. Each round is worse than the last. You cannot lose — you can
 only end up owning less and less of what you built.
 
 ## The two advisers
+
+![Markets](docs/markets.jpg)
 
 ![Mike](docs/mike.jpg)
 
@@ -125,8 +151,8 @@ you. He opens with "now then, now then" and closes with an invoice.
 - **Markets** — the full exchange with intraday and 90-session charts, a depth
   ladder, and a dealing ticket that charges commission, stamp duty and a levy.
 - **Register** — the founding asset book with 36 months of valuations.
-- **Command** — net worth over time, weekly cash flow broken down line by line,
-  standing meters, group news, and the single most useful next action.
+- **Overview** — the plan, matters arising, net worth over time, the period result
+  broken down line by line, standing, and the group wire.
 
 ### Exports, which are real
 
@@ -147,12 +173,27 @@ expenses, the news, and the price the market puts on all of it.
 The game saves itself continuously. **Settings → Saved game** exports the whole thing
 as a file you can keep or move to another machine, and reads it back.
 
+### Performance
+
+It holds a locked 60fps with the market live. It did not always: the first build of
+the glass used a full-screen `backdrop-filter: blur(30px)` over three animated
+90-pixel blurs, which measured **7fps**. All of it is now painted rather than
+sampled — the same picture out of static gradients, inset rims and gloss, which cost
+nothing to re-rasterise because they are never re-rasterised. The tape and the
+screener update text in place instead of rebuilding their rows.
+
+| | Before | After |
+|---|---|---|
+| Overview, idle | 7.6 fps | **59.8 fps** |
+| Markets, live tape | 6.8 fps | **60.1 fps** |
+| Market tick | 41 ms | **14 ms** |
+
 ### Group capitalisation
 
 One logarithmic dial scales the entire world, from **£15,000** to **£15,000,000**:
-the asset register, the dealing account, the property market, the lifestyle
-catalogue and every company's market capitalisation all move together, so the game
-is the same shape whether you are a modest landlord or a principal tier institution.
+the asset register, the treasury, the property market and every company's market
+capitalisation all move together, so the game is the same shape whether you are a
+modest landlord or a principal tier institution.
 
 ## Making it yours
 
@@ -167,7 +208,7 @@ and **Daylight**, with **Automatic** following the operating system.
 
 | Keys | Action |
 |---|---|
-| `Ctrl`/`⌘` + `1`–`9`, `0` | Jump to a panel |
+| `Ctrl`/`⌘` + `1`–`9` | Jump to a panel |
 | `↑` `↓` `Home` `End` | Move through the navigation |
 | `Ctrl`/`⌘` + `L` | Lock the workstation |
 | `Enter` in search | Search correspondence |
@@ -197,11 +238,11 @@ js/
   market.js           The exchange, dealing and the portfolio
   data/               People, instruments, the register, mail, messages
   sim/
-    data.js           Executives, roles, strategies, channels, property, builders,
-                      lifestyle, events
+    data.js           Executives, roles, strategies, channels, property, builders, events
     state.js          The save game
-    engine.js         Fundamentals, operations, property, lifestyle, the bailout
+    engine.js         Fundamentals, operations, property, credit, the bailout
     clock.js          The week: settlement, executives, news, repricing
+    flow.js           The operating plan and matters arising
     assistant.js      Mike L — intents, entity extraction, and the command parser
     advisor.js        Jimmy
   views/              One module per panel
@@ -252,9 +293,9 @@ persistence, currency, search, markup injection and the no-network guarantee.
 `npm run test:sim` covers the economy and fair value, control thresholds, strategy,
 hiring and dismissal, pricing, campaigns, executives and embezzlement, audits,
 whether management actually moves the market, property purchase through to completed
-works, the lifestyle book, the bailout and its repayment, Mike's advice and all
-eight of his executed commands, his Apple/BlackBerry/Storm/offshoring triggers,
-Jimmy, all five PDFs byte-for-byte, and a save/reload/import round trip.
+works, the credit rating, the operating plan, the bailout and its repayment, Mike's
+advice and all eight of his executed commands, his Apple/BlackBerry/Storm/offshoring
+triggers, Jimmy, all five PDFs byte-for-byte, and a save/reload/import round trip.
 
 **All checks pass on Chromium against the source tree and against the single-file
 build.**

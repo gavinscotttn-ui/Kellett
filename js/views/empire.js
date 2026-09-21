@@ -36,7 +36,7 @@
     root.appendChild(h('div', { class: 'view-head' }, [
       h('div', { class: 'titles' }, [
         h('div', { class: 'eyebrow', text: 'Group operations' }),
-        h('h1', { text: 'Empire' })
+        h('h1', { text: 'Holdings' })
       ]),
       h('div', { class: 'spacer' }),
       h('div', { class: 'actions' }, [
@@ -108,18 +108,13 @@
             h('span', { text: fmt.pct(ch.pct, 1) })
           ])
         ]),
-        h('span', { class: 'score-pill ' + scoreClass(score), title: 'Turnaround score', text: String(score) })
+        h('span', { class: 'grade-pill ' + KH.app.gradeClass(score),
+          title: 'Condition ' + KH.sim.turnaroundLabel(score) + ' (' + score + '/100)',
+          text: KH.app.gradeOf(score) })
       ]);
     }));
 
     renderDetail(current.sym);
-  }
-
-  function scoreClass(score) {
-    if (score <= 0) return 'doomed';
-    if (score < 35) return 'hard';
-    if (score < 65) return 'fair';
-    return 'good';
   }
 
   function renderDetail(sym) {
@@ -143,7 +138,8 @@
         h('div', { class: 'spacer' }),
         h('span', { class: 'chip ' + (own >= KH.sim.CONTROL ? 'good' : own >= KH.sim.BOARD ? 'accent' : ''),
           text: (own * 100).toFixed(1) + '% held' }),
-        h('span', { class: 'chip score-chip ' + scoreClass(score), text: 'Turnaround ' + score + ' · ' + KH.sim.turnaroundLabel(score) })
+        h('span', { class: 'chip score-chip ' + KH.app.gradeClass(score),
+          text: 'Condition ' + KH.app.gradeOf(score) + ' · ' + KH.sim.turnaroundLabel(score) })
       ]),
       h('div', { class: 'tabstrip' }, TABS.map(function (t) {
         return h('button', {
@@ -512,7 +508,7 @@
 
   KH.views = KH.views || {};
   KH.views.empire = {
-    id: 'empire', label: 'Empire', icon: 'building',
+    id: 'empire', label: 'Holdings', icon: 'building',
     mount: mount, activate: refresh, refresh: refresh,
     select: function (sym) { current.sym = sym; current.tab = 'brief'; refresh(); }
   };

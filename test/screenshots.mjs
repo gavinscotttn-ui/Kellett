@@ -52,8 +52,6 @@ await page.evaluate(() => {
   const offers = KH.game.get().offers.filter(o => o.propId === 'p-rovers');
   KH.sim.acceptQuote(offers.sort((a, b) => (b.quality * b.reliability) / b.price - (a.quality * a.reliability) / a.price)[0].id);
 
-  ['l-watch2', 'l-car1', 'l-wine', 'l-club'].forEach(id => KH.sim.buyLifestyle(id));
-
   for (let i = 0; i < 34; i++) KH.clock.advance(true);
   g.treasury.cash = Math.max(g.treasury.cash, 4200000);
   KH.app.refreshAll();
@@ -63,9 +61,9 @@ await page.waitForTimeout(900);
 async function shot(name) { await page.screenshot({ path: `${OUT}/${name}.png` }); }
 
 const views = [
-  ['overview', '01-command'], ['empire', '02-empire'], ['property', '03-property'],
-  ['markets', '04-markets'], ['lifestyle', '05-wealth'], ['assets', '06-register'],
-  ['mail', '07-mail'], ['messages', '08-messaging'], ['advisor', '09-advisory'], ['settings', '10-settings']
+  ['overview', '01-overview'], ['empire', '02-holdings'], ['property', '03-property'],
+  ['markets', '04-markets'], ['assets', '05-register'],
+  ['mail', '06-mail'], ['messages', '07-messaging'], ['advisor', '08-advisory'], ['settings', '09-settings']
 ];
 for (const [tab, name] of views) {
   await page.click(`#tab-${tab}`);
@@ -77,8 +75,8 @@ for (const [tab, name] of views) {
 await page.click('#tab-empire'); await page.waitForTimeout(600);
 await page.evaluate(() => KH.views.empire.select('UWTX'));
 await page.waitForTimeout(400);
-for (const [label, name] of [['Strategy', '11-strategy'], ['People', '12-people'], ['Ranges & pricing', '13-pricing'], ['Governance', '14-governance']]) {
-  await page.click(`.tabbtn:has-text("${label}")`);
+for (const [label, name] of [['Strategy', '10-strategy'], ['People', '11-people'], ['Ranges & pricing', '12-pricing'], ['Governance', '13-governance']]) {
+  await page.click(`#view-empire .tabbtn:text-is("${label}")`);
   await page.waitForTimeout(650);
   await shot(name);
 }
@@ -90,22 +88,22 @@ await page.waitForTimeout(400);
 await page.fill('.composer textarea', 'how are we doing');
 await page.click('.composer .btn.primary');
 await page.waitForTimeout(3200);
-await shot('15-mike');
+await shot('14-mike');
 await page.fill('.composer textarea', 'should we outsource manufacturing to china');
 await page.click('.composer .btn.primary');
 await page.waitForTimeout(3600);
-await shot('16-mike-china');
+await shot('15-mike-china');
 
 /* The Treasury arriving */
 await page.evaluate(() => { KH.game.get().treasury.cash = -800000; KH.app.offerBailout(KH.sim.bailoutOffer()); });
 await page.waitForTimeout(700);
-await shot('17-bailout');
+await shot('16-bailout');
 await page.click('.modal-actions .btn:not(.primary)');
 await page.waitForTimeout(400);
 
 /* Light theme */
 await page.evaluate(() => { KH.game.get().treasury.cash = 4200000; KH.store.set('appearance', { theme: 'light' }); KH.app.applyAppearance(); KH.app.refreshAll(); });
-for (const [tab, name] of [['overview', '18-light-command'], ['empire', '19-light-empire'], ['property', '20-light-property'], ['markets', '21-light-markets']]) {
+for (const [tab, name] of [['overview', '17-light-overview'], ['empire', '18-light-holdings'], ['property', '19-light-property'], ['markets', '20-light-markets']]) {
   await page.click(`#tab-${tab}`);
   await page.waitForTimeout(950);
   await shot(name);
@@ -114,7 +112,7 @@ for (const [tab, name] of [['overview', '18-light-command'], ['empire', '19-ligh
 /* Narrow */
 await page.setViewportSize({ width: 1100, height: 800 });
 await page.evaluate(() => { KH.store.set('appearance', { theme: 'dark' }); KH.app.applyAppearance(); });
-await page.click('#tab-overview'); await page.waitForTimeout(900); await shot('22-narrow');
+await page.click('#tab-overview'); await page.waitForTimeout(900); await shot('21-narrow');
 
 console.log('Console problems:', problems.length ? '\n' + problems.join('\n') : '(none)');
 await browser.close();

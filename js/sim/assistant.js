@@ -521,11 +521,27 @@
         : 'Fix the operating deficit before you repay a penny. Paying down debt while burning cash just brings the next bailout forward.');
   });
 
+  intent('credit', ['credit rating', 'rating', 'gearing', 'leverage', 'creditworth', 'borrow against', 'covenant', 'grade'], function () {
+    var r = KH.sim.creditRating();
+    var g = G();
+    var f = weeklyFlow();
+    return 'Credit rating ' + r.grade + ' \u2014 ' + r.note.toLowerCase() + ' (' + r.score + '/100).\n\n' + bullets([
+      'Gearing ' + (r.gearing * 100).toFixed(1) + '% of enterprise value',
+      'State debt ' + money(g.treasury.debt) + ', cash ' + money(g.treasury.cash),
+      'Weekly flow ' + (f.net >= 0 ? '+' : '') + money(f.net),
+      'Reputation ' + Math.round(g.standing.reputation) + ', scrutiny ' + Math.round(g.standing.scrutiny)
+    ]) + '\n\n' + (r.score > 74
+      ? 'That is investment grade and it is not at risk. Nothing to do.'
+      : r.score > 48
+        ? 'Lower medium grade. Clearing debt and getting the weekly flow positive are the two levers that move it.'
+        : 'Speculative. The binding constraint is ' + (g.treasury.debt > 0 ? 'the state facility' : 'the operating deficit') + '.');
+  });
+
   intent('worth', ['net worth', 'worth', 'how rich', 'performance', 'how am i doing', 'total', 'wealth', 'assets'], function () {
     var w = KH.sim.netWorth(), g = G();
     var parts = [
       ['Cash', w.cash], ['Listed equity', w.equity], ['Asset register', w.register],
-      ['Property', w.property], ['Personal assets', w.toys]
+      ['Property', w.property]
     ];
     var lines = parts.map(function (p) {
       return p[0] + ': ' + money(p[1]) + ' (' + ((p[1] / (w.total + w.debt)) * 100).toFixed(1) + '%)';
@@ -536,20 +552,6 @@
       (w.total >= peak ? 'That is a new high.' : 'Down ' + money(peak - w.total) + ' from your peak of ' + money(peak) + '.') +
       ' Over ' + g.stats.weeksRun + ' weeks that is ' +
       (g.stats.weeksRun ? money((w.total - g.treasury.opening) / g.stats.weeksRun) + ' a week.' : 'too early to annualise.');
-  });
-
-  intent('lifestyle', ['car', 'watch', 'jewel', 'yacht', 'jet', 'treat', 'lifestyle', 'prestige', 'buy myself', 'spend on me', 'island'], function () {
-    var g = G();
-    var afford = KH.simdata.lifestyle.map(function (i) {
-      return { i: i, price: KH.sim.lifestylePrice(i) };
-    }).filter(function (r) { return r.price <= g.treasury.cash; });
-    var appreciating = afford.filter(function (r) { return r.i.appreciation > 0.05; })
-      .sort(function (a, b) { return b.i.appreciation - a.i.appreciation; }).slice(0, 3);
-    if (!afford.length) return 'Nothing in the catalogue is affordable on ' + money(g.treasury.cash) + '. Prestige is ' + Math.round(g.standing.prestige) + '. Earn first, then buy.';
-    return 'You can afford ' + afford.length + ' of the ' + KH.simdata.lifestyle.length + ' items. Prestige is ' + Math.round(g.standing.prestige) + '.\n\n' +
-      'If you want to spend money without losing it:\n\n' + bullets(appreciating.map(function (r) {
-        return r.i.label + ' — ' + money(r.price) + ', appreciating at about ' + (r.i.appreciation * 100).toFixed(0) + '% a year. ' + r.i.blurb;
-      })) + '\n\nAvoid the hospitality box and the retained chef: both are written to zero and neither comes back. The three-wheeled van, absurdly, is the best percentage return in the catalogue.';
   });
 
   intent('jimmy', ['jimmy', 'jimmyvision', 'jvis', 'advisor', 'advice from jimmy'], function () {
@@ -829,7 +831,8 @@
   function appleRage(q) {
     var lower = normalise(q);
     if (!APPLE.some(function (k) { return lower.indexOf(k.trim()) !== -1; })) return null;
-    var rant = RAGE.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 2);
+    // The keyboard line always leads. It is the one he actually cares about.
+    var rant = [RAGE[0]].concat(RAGE.slice(1).sort(function () { return Math.random() - 0.5; }).slice(0, 1));
     var stripped = q.replace(new RegExp(APPLE.join('|'), 'gi'), ' ').trim();
 
     // He will still do his job. He will just be extremely unhappy about it.
@@ -949,19 +952,6 @@
       if (sc > score) { score = sc; best = l; }
     });
     return score >= 5 ? best : null;
-  }
-
-  function findLifestyle(norm) {
-    var best = null, score = 0;
-    KH.simdata.lifestyle.forEach(function (it) {
-      var sc = 0;
-      it.label.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).forEach(function (w) {
-        if (w.length > 3 && norm.indexOf(w) !== -1) sc += w.length;
-      });
-      if (norm.indexOf(it.cat.toLowerCase()) !== -1) sc += 4;
-      if (sc > score) { score = sc; best = it; }
-    });
-    return score >= 6 ? best : null;
   }
 
   function done(text) { KH.app.refreshAll(); return text; }
@@ -1208,15 +1198,6 @@
           ' of fees.\n\nCondition ' + listing.condition + '/100, rent ' + money(KH.sim.marketRent(listing)) +
           ' a week. Cash is now ' + money(G().treasury.cash) + '.' +
           (listing.condition < 40 ? '\n\nIt will not let in that condition. Say the word and I will get quotes in.' : ''));
-      }
-      var lux = findLifestyle(norm);
-      if (lux && /\b(me|myself|personal|treat)\b/.test(norm) || (lux && !inst)) {
-        var lres = KH.sim.buyLifestyle(lux.id);
-        if (!lres.ok) return 'Not purchased: ' + lres.reason;
-        return done('Acquired: ' + lux.label + ' at ' + money(lres.price) + '. Prestige up ' + lux.prestige +
-          '.\n\n' + (lux.appreciation > 0 ? 'It appreciates at about ' + (lux.appreciation * 100).toFixed(0) + '% a year, so it is not entirely an indulgence.'
-            : lux.appreciation <= -1 ? 'For the avoidance of doubt, this has no resale value whatsoever.'
-              : 'It depreciates at about ' + Math.abs(lux.appreciation * 100).toFixed(0) + '% a year. Enjoy it.'));
       }
     }
 

@@ -7,9 +7,7 @@
 .glass {
   position: relative;
   border-radius: var(--radius-lg);
-  background: var(--glass-fill);
-  backdrop-filter: blur(30px) saturate(150%) brightness(1.05);
-  -webkit-backdrop-filter: blur(30px) saturate(150%) brightness(1.05);
+  background: var(--glass-body);
   box-shadow:
     inset 0 1px 0 var(--rim-light),
     inset 1px 0 0 var(--rim-side),
@@ -63,14 +61,13 @@
 .glass.quiet::before { height: 40%; opacity: 0.55; }
 .glass.quiet::after { opacity: 0.6; }
 
-.reduced-effects .glass,
-.reduced-effects .btn,
-.reduced-effects .panel {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-:root[data-theme='dark'] .reduced-effects .glass { background: rgba(14, 44, 76, 0.94); }
-:root[data-theme='light'] .reduced-effects .glass { background: rgba(250, 253, 255, 0.96); }
+/* The effects switch now drops the gloss and sheen layers, which are the
+   only remaining per-surface cost. */
+.reduced-effects .glass::before,
+.reduced-effects .glass::after,
+.reduced-effects .panel::before,
+.reduced-effects .btn::before,
+.reduced-effects .stat::before { display: none; }
 
 /* ============================================================
    Panels — the workhorse container for every card in the app.
@@ -128,9 +125,9 @@
   font-weight: 500;
   color: var(--text-primary);
   border-radius: var(--radius-sm);
-  background: var(--glass-fill);
+  background: var(--btn-body);
   border: 1px solid var(--rule-strong);
-  box-shadow: inset 0 1px 0 var(--rim-light), 0 2px 6px color-mix(in srgb, var(--drop) 50%, transparent);
+  box-shadow: inset 0 1px 0 var(--rim-light), 0 1px 3px color-mix(in srgb, var(--drop) 45%, transparent);
   overflow: hidden;
   white-space: nowrap;
   transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
@@ -344,9 +341,7 @@ body.rail .sidebar-foot { display: none; }
   padding: 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--rule-strong);
-  background: var(--glass-fill-strong);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  background: var(--glass-body-strong);
   box-shadow: inset 0 1px 0 var(--rim-light), 0 10px 26px var(--drop);
   animation: toast-in var(--dur) var(--ease) both;
 }

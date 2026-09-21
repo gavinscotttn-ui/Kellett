@@ -329,9 +329,7 @@ button.choice:hover { border-color: var(--accent-deep); transform: translateY(-1
   position: fixed; inset: 0; z-index: 50;
   display: grid; place-items: center;
   padding: 24px;
-  background: rgba(3, 12, 24, 0.62);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(3, 12, 24, 0.72);
   animation: modal-in var(--dur) var(--ease) both;
 }
 @keyframes modal-in { from { opacity: 0; } to { opacity: 1; } }
@@ -386,3 +384,131 @@ button.choice:hover { border-color: var(--accent-deep); transform: translateY(-1
 .stat .v.delta.up { color: var(--up); }
 .stat .v.delta.down { color: var(--down); }
 :root[data-theme='light'] .stat .v.delta.up { color: #006300; }
+
+/* ============================================================
+   Executive chrome: the period bar, the operating plan, matters
+   arising, and grades in place of scores.
+   ============================================================ */
+
+.period-bar {
+  display: flex;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule-strong);
+  background: var(--field);
+  overflow: hidden;
+}
+.period-seg {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 3px 12px;
+  min-width: 56px;
+  line-height: 1.1;
+}
+.period-seg + .period-seg { border-left: 1px solid var(--rule); }
+.period-seg b { font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.period-seg span { font-size: 0.56rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); }
+
+/* ---------- Grades ---------- */
+
+.grade-pill {
+  flex: none;
+  min-width: 38px; height: 21px;
+  display: grid; place-items: center;
+  padding: 0 7px;
+  border-radius: 3px;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em;
+  border: 1px solid var(--rule-strong);
+  background: var(--field);
+  color: var(--text-secondary);
+}
+.grade-pill.high { color: var(--up); border-color: color-mix(in srgb, var(--up) 45%, transparent); }
+.grade-pill.mid { color: var(--text-secondary); }
+.grade-pill.low { color: var(--serious); border-color: color-mix(in srgb, var(--serious) 45%, transparent); }
+.grade-pill.d { color: #fff; background: #8d2521; border-color: #6d1a16; }
+:root[data-theme='light'] .grade-pill.high { color: #006300; }
+
+.chip.score-chip { text-transform: none; letter-spacing: 0.02em; }
+.chip.score-chip.high { color: var(--up); border-color: color-mix(in srgb, var(--up) 45%, transparent); }
+.chip.score-chip.low { color: var(--serious); border-color: color-mix(in srgb, var(--serious) 50%, transparent); }
+.chip.score-chip.d { color: #fff; background: #8d2521; border-color: #6d1a16; }
+
+/* ---------- The operating plan ---------- */
+
+.plan-meter { padding: 10px var(--pad) 0; }
+.plan-track { display: flex; gap: 3px; }
+.plan-pip {
+  flex: 1; height: 5px;
+  border-radius: 2px;
+  background: var(--field);
+  border: 1px solid var(--field-edge);
+}
+.plan-pip.done {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 72%, #fff), var(--accent-deep));
+  border-color: var(--accent-deep);
+}
+
+.plan-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px var(--pad);
+  border-bottom: 1px solid var(--rule);
+}
+.plan-row:last-child { border-bottom: 0; }
+.plan-row.now { background: var(--glass-fill-quiet); }
+.plan-index {
+  flex: none;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  font-size: var(--type-micro); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--rule-strong);
+  color: var(--text-muted);
+}
+.plan-row.now .plan-index {
+  color: var(--text-on-accent);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent-deep));
+  border-color: var(--accent-deep);
+}
+.plan-body { flex: 1; min-width: 0; line-height: 1.4; }
+.plan-body b { display: block; font-size: var(--type-body); font-weight: 600; }
+.plan-body span { display: block; font-size: var(--type-meta); color: var(--text-secondary); }
+
+/* ---------- Matters arising ---------- */
+
+.issue-row {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 11px var(--pad);
+  border-bottom: 1px solid var(--rule);
+}
+.issue-row:last-child { border-bottom: 0; }
+.issue-dot {
+  flex: none;
+  width: 8px; height: 8px; margin-top: 5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.issue-row.critical .issue-dot { background: var(--down); box-shadow: 0 0 0 3px color-mix(in srgb, var(--down) 22%, transparent); }
+.issue-row.warning .issue-dot { background: var(--warn); }
+.issue-row.info .issue-dot { background: var(--accent); }
+.issue-body { flex: 1; min-width: 0; line-height: 1.42; }
+.issue-body b { display: block; font-size: var(--type-body); font-weight: 600; }
+.issue-body span { display: block; font-size: var(--type-meta); color: var(--text-secondary); }
+
+/* A session state is a state, not a headline. Neutral chip, one dot. */
+.chip.status { text-transform: none; letter-spacing: 0.02em; font-weight: 500; color: var(--text-secondary); }
+.chip.status::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted); flex: none;
+}
+.chip.status.live::before { background: var(--up); box-shadow: 0 0 6px color-mix(in srgb, var(--up) 60%, transparent); }
+
+/* A figure with a label, rather than a badge shouting a number. */
+.figure-chip {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--field);
+  font-size: var(--type-meta);
+  white-space: nowrap;
+}
+.figure-chip .k { font-size: var(--type-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }

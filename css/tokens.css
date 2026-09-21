@@ -76,6 +76,12 @@
   --glass-fill: rgba(24, 78, 122, 0.30);
   --glass-fill-strong: rgba(28, 90, 140, 0.44);
   --glass-fill-quiet: rgba(16, 54, 90, 0.24);
+
+  /* What a blurred pane of this glass actually resolves to. Painted
+     rather than sampled, which is the difference between 7fps and 60. */
+  --glass-body: linear-gradient(170deg, rgba(23, 62, 104, 0.93), rgba(12, 40, 72, 0.95));
+  --glass-body-strong: linear-gradient(170deg, rgba(30, 76, 122, 0.97), rgba(17, 50, 86, 0.98));
+  --btn-body: linear-gradient(to bottom, rgba(38, 86, 134, 0.85), rgba(24, 62, 104, 0.9));
   --glass-edge: rgba(160, 220, 255, 0.26);
   --gloss-top: rgba(255, 255, 255, 0.40);
   --gloss-mid: rgba(214, 246, 255, 0.18);
@@ -134,6 +140,10 @@
   --glass-fill: rgba(255, 255, 255, 0.66);
   --glass-fill-strong: rgba(255, 255, 255, 0.86);
   --glass-fill-quiet: rgba(255, 255, 255, 0.46);
+
+  --glass-body: linear-gradient(170deg, rgba(252, 253, 255, 0.95), rgba(238, 245, 252, 0.96));
+  --glass-body-strong: linear-gradient(170deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 254, 0.99));
+  --btn-body: linear-gradient(to bottom, rgba(255, 255, 255, 0.92), rgba(233, 241, 249, 0.95));
   --glass-edge: rgba(255, 255, 255, 0.9);
   --gloss-top: rgba(255, 255, 255, 0.85);
   --gloss-mid: rgba(255, 255, 255, 0.35);

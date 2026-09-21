@@ -376,9 +376,9 @@
         reply: 'He did not reply for six days. When he did, it said: "41 slides. Still 41 slides."' }
     ],
     m03: [
-      { label: 'Approve two more induction points', effect: { cash: -46000, prestige: 4, reputation: 2 },
+      { label: 'Approve two more induction points', effect: { cash: -46000, reputation: 4 },
         reply: 'BEAUTIFUL. ABSOLUTELY BEAUTIFUL. THREE HUNDRED COVERS AND NOT ONE COMPLAINT. THE LAMB SAUCE WAS FOUND.' },
-      { label: 'Tell him to work with the kitchen as it is', effect: { reputation: -2, prestige: -2 },
+      { label: 'Tell him to work with the kitchen as it is', effect: { reputation: -3 },
         reply: 'HE WORKED WITH IT. IT WAS FINE. FINE IS THE WORST WORD IN THE ENGLISH LANGUAGE AND YOU DID THIS.' }
     ],
     m05: [
@@ -398,7 +398,7 @@
     m07: [
       { label: 'Decline politely', effect: { reputation: 2 },
         reply: 'ok. no hard feelings. i am starting a competing holding company. it is called Holdings. it will be better' },
-      { label: 'Name an absurd price', effect: { prestige: 6, reputation: -1 },
+      { label: 'Name an absurd price', effect: {  reputation: 3 },
         reply: 'love it. respect. i am not paying that but i am going to tell people you asked for it' }
     ],
     m17: [
@@ -408,21 +408,21 @@
         reply: 'I have written it off as instructed and noted on the file that it was written off at your instruction.' }
     ],
     m26: [
-      { label: 'Accept dinner and the navy suit', effect: { prestige: 8, reputation: 4 },
+      { label: 'Accept dinner and the navy suit', effect: {  reputation: 9 },
         reply: 'Correct on both counts. Kabletown came up two turns before the dessert. You are now a man I return calls to.' },
       { label: 'Decline — you do not need Sheinhardt', effect: { reputation: -2 },
         reply: 'A mistake, but an honest one. I respect the decision and I will remember it for exactly as long as it suits me.' }
     ],
     m27: [
-      { label: 'Fly out to the estate', effect: { cash: -84000, prestige: 9, reputation: 3 },
+      { label: 'Fly out to the estate', effect: { cash: -84000, reputation: 8 },
         reply: 'Good. We swam, we argued, and we signed. You are harder work than you look, which in my book is a compliment.' },
       { label: 'Send the corporate finance team instead', effect: { reputation: -3 },
         reply: 'I do not deal with teams. I deal with principals. The offer stands, three per cent worse.' }
     ],
     m29: [
-      { label: 'Take the stake at the 6% discount', effect: { cash: -260000, reputation: 6, prestige: 4 },
+      { label: 'Take the stake at the 6% discount', effect: { cash: -260000, reputation: 8 },
         reply: 'Papered this afternoon. Welcome to the register, and I will see you at the first board meeting in October.' },
-      { label: 'Negotiate for a full board seat now', effect: { reputation: -2, prestige: 2 },
+      { label: 'Negotiate for a full board seat now', effect: { reputation: -1 },
         reply: 'No. Observer at twelve months or nothing. I said best and final and I meant it. The offer closes Friday.' },
       { label: 'Decline — buy in the market instead', effect: { scrutiny: 5 },
         reply: 'Then buy quietly and stay under three per cent, or we both end up making an announcement neither of us wants.' }
@@ -434,15 +434,15 @@
         reply: 'Your loss. Literally. In about eighteen months. Mark this email.' }
     ],
     m15: [
-      { label: 'Put twenty thousand in', effect: { cash: -20000, reputation: -3, prestige: 1 },
+      { label: 'Put twenty thousand in', effect: { cash: -20000, reputation: -2 },
         reply: 'Lovely jubbly! They\u2019ve got a plug on them. Slight issue with which country the plug is for. Still a bargain though.' },
       { label: 'Decline', effect: {},
         reply: 'No worries, Gav. This time next year, eh? This time next year.' }
     ],
     m16: [
-      { label: 'Commission a pilot of Monkey Tennis', effect: { cash: -140000, prestige: 5, reputation: -5 },
+      { label: 'Commission a pilot of Monkey Tennis', effect: { cash: -140000, reputation: -2 },
         reply: 'YES! Monkey Tennis is GO. I have booked a court, six monkeys and a man from the zoo who says it will not work.' },
-      { label: 'Offer a first-look deal on Youth Hostelling', effect: { cash: -60000, prestige: 3 },
+      { label: 'Offer a first-look deal on Youth Hostelling', effect: { cash: -60000, reputation: 2 },
         reply: 'Chris Eubank has said yes. Chris Eubank has said yes! I am going to be sick. In a good way. Mostly.' },
       { label: 'Pass', effect: {},
         reply: 'Understood. I shall put Monkey Tennis on the back burner. Not off the hob. Back.' }

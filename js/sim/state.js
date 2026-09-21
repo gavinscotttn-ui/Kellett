@@ -11,7 +11,7 @@
   'use strict';
 
   var KEY = 'kellett.game.v1';
-  var VERSION = 1;
+  var VERSION = 2;
 
   var state = null;
   var persistent = true;
@@ -31,18 +31,17 @@
         rating: 'A',
         bailouts: []
       },
-      standing: { reputation: 64, scrutiny: 6, prestige: 0, morale: 70 },
+      standing: { reputation: 64, scrutiny: 6, morale: 70 },
       corps: {},        // sym -> holding + how it is being run
       props: [],        // owned property
       offers: [],       // live builder quotes
-      lifestyle: [],    // things bought for oneself
       ledger: [],       // money in, money out
       history: [],      // one net-worth point per week
       news: [],         // what happened
       inbox: { handled: {} },  // correspondence decisions taken
       stats: {
         peakNetWorth: 0, weeksRun: 0, deals: 0, hires: 0, fires: 0,
-        campaigns: 0, renovations: 0, bailouts: 0, whistleblowers: 0, sacked: 0
+        campaigns: 0, renovations: 0, bailouts: 0, whistleblowers: 0, sacked: 0, milestones: {}
       }
     };
   }

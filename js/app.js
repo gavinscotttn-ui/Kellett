@@ -8,7 +8,7 @@
 
   var h = KH.dom.h, $ = KH.dom.$, icon = KH.dom.icon, fmt = KH.fmt;
 
-  var ORDER = ['overview', 'empire', 'property', 'markets', 'lifestyle', 'assets', 'mail', 'messages', 'advisor', 'settings'];
+  var ORDER = ['overview', 'empire', 'property', 'markets', 'assets', 'mail', 'messages', 'advisor', 'settings'];
   var mounted = {};
   var currentView = null;
   var navButtons = {};
@@ -46,10 +46,6 @@
         pr.value = Math.round(pr.value * ratio);
         pr.paid = Math.round(pr.paid * ratio);
         pr.rent = Math.round(pr.rent * ratio);
-      });
-      KH.game.get().lifestyle.forEach(function (l) {
-        l.value = Math.round(l.value * ratio);
-        l.paid = Math.round(l.paid * ratio);
       });
       KH.game.save();
     }
@@ -92,6 +88,32 @@
     systemDark.addEventListener('change', function () {
       if (KH.store.get('appearance').theme === 'auto') { applyAppearance(); refreshAll(); }
     });
+  }
+
+  /* ============================================================
+     Grades
+
+     A company's condition is shown the way a credit committee
+     would show it, rather than as a score out of a hundred with a
+     colour on it. The number is still there underneath.
+     ============================================================ */
+
+  function gradeOf(score) {
+    if (score <= 0) return 'D';
+    if (score < 20) return 'CCC';
+    if (score < 34) return 'B';
+    if (score < 48) return 'BB';
+    if (score < 62) return 'BBB';
+    if (score < 76) return 'A';
+    if (score < 90) return 'AA';
+    return 'AAA';
+  }
+
+  function gradeClass(score) {
+    if (score <= 0) return 'd';
+    if (score < 34) return 'low';
+    if (score < 62) return 'mid';
+    return 'high';
   }
 
   /* ============================================================
@@ -271,14 +293,16 @@
     for (var pass = 0; pass < 2; pass++) {
       lines.forEach(function (inst) {
         var px = h('span', { class: 't-px' });
-        var delta = h('span', {});
+        var arrow = h('span', { class: 'arrow', 'aria-hidden': 'true' });
+        var pctText = h('span', {});
+        var delta = h('span', { class: 'delta flat' }, [arrow, pctText]);
         var item = h('span', { class: 'ticker-item' }, [
           h('span', { class: 't-sym', text: inst.sym }),
           px,
           h('span', { class: 't-sep', text: '│' }),
           delta
         ]);
-        tickerState.items.push({ inst: inst, px: px, delta: delta });
+        tickerState.items.push({ inst: inst, px: px, delta: delta, arrow: arrow, pct: pctText, last: '' });
         track.appendChild(item);
       });
     }
@@ -289,14 +313,20 @@
     });
   }
 
+  /* Rebuilding eighty-odd nodes on every tape tick was most of the cost
+     of the status bar. Nothing is created here any more; only text and
+     one class name change. */
   function paintTicker() {
     tickerState.items.forEach(function (t) {
       var ch = KH.market.change(t.inst);
+      var dir = fmt.dir(ch.pct);
       t.px.textContent = (t.inst.unit === undefined ? '' : t.inst.unit) + fmt.group(t.inst.px, t.inst.dp === undefined ? 2 : t.inst.dp);
-      KH.dom.fill(t.delta, h('span', { class: 'delta ' + fmt.dir(ch.pct) }, [
-        h('span', { class: 'arrow', text: fmt.arrow(ch.pct), 'aria-hidden': 'true' }),
-        h('span', { text: fmt.pct(ch.pct) })
-      ]));
+      t.pct.textContent = fmt.pct(ch.pct);
+      if (dir !== t.last) {
+        t.arrow.textContent = fmt.arrow(ch.pct);
+        t.delta.className = 'delta ' + dir;
+        t.last = dir;
+      }
     });
   }
 
@@ -333,11 +363,11 @@
       h('div', { class: 't-body' }, [h('b', { text: title }), detail ? h('span', { text: detail }) : null])
     ]);
     host.appendChild(node);
-    while (host.children.length > 2) host.removeChild(host.firstChild);
+    while (host.children.length > 1) host.removeChild(host.firstChild);
     setTimeout(function () {
       node.classList.add('out');
       setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 400);
-    }, 5200);
+    }, 4200);
   }
 
   /* ============================================================
@@ -582,6 +612,7 @@
   KH.app = {
     go: go, toast: toast, refreshAll: refreshAll, applyAppearance: applyAppearance,
     applyWealth: applyWealth, factorFor: factorFor, offerBailout: offerBailout,
+    gradeOf: gradeOf, gradeClass: gradeClass,
     wealthRange: { min: MIN_NET, max: MAX_NET },
     isUnread: isUnread, isFlagged: isFlagged, isDeleted: isDeleted,
     markRead: markRead, toggleFlag: toggleFlag, deleteMessage: deleteMessage,
